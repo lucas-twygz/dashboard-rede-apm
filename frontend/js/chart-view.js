@@ -1,40 +1,88 @@
-let criticalChart = null;
+let problemChart = null;
 
-export function drawCriticalChart(chartData, onBarClickCallback) {
+/**
+ * Desenha ou atualiza o gráfico de barras empilhadas dos 10 piores locais.
+ * @param {Array} apiData - Os dados da API (lista de locais com problemas).
+ * @param {Function} onBarClickCallback - Função a ser chamada quando uma barra é clicada.
+ */
+export function drawProblemChart(apiData, onBarClickCallback) {
     const ctx = document.getElementById('critical-points-chart').getContext('2d');
-    if (criticalChart) {
-        criticalChart.destroy();
+
+    if (problemChart) {
+        problemChart.destroy();
     }
-    
-    criticalChart = new Chart(ctx, {
+
+    const labels = apiData.map(item => item.grid_id);
+    const criticalData = apiData.map(item => item.critical_count);
+    const attentionData = apiData.map(item => item.attention_count);
+
+    problemChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: chartData.labels,
-            datasets: chartData.datasets.map(dataset => ({ ...dataset, backgroundColor: 'rgba(255, 99, 132, 0.7)' }))
+            labels: labels,
+            datasets: [{
+                label: 'Atenção',
+                data: attentionData,
+                backgroundColor: '#FFC107' ,
+            }, {
+                label: 'Críticos',
+                data: criticalData,
+                backgroundColor: '#E61F25',
+            }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false,
+            responsive: true,
+            maintainAspectRatio: false,
             onClick: (event, elements) => {
                 if (elements.length > 0) {
                     const clickedIndex = elements[0].index;
-                    const pointData = chartData.datasets[0].full_data[clickedIndex];
-                    if (pointData && pointData.lat && pointData.lng && onBarClickCallback) {
-                        onBarClickCallback(pointData.lat, pointData.lng);
+                    const pointData = apiData[clickedIndex];
+                    if (pointData && pointData.lat && pointData.lon && onBarClickCallback) {
+                        onBarClickCallback(pointData.lat, pointData.lon);
                     }
                 }
             },
             plugins: {
-                legend: { display: false },
+                legend: {
+                    display: true,
+                    position: 'top',
+                },
                 tooltip: {
                     callbacks: {
-                        title: (context) => `Local (Grid ID): ${context[0].dataset.full_data[context[0].dataIndex].grid_id}`,
-                        label: (context) => ` Medições Ruins: ${context.dataset.full_data[context.dataIndex].bad} (de ${context.dataset.full_data[context.dataIndex].total} no total)`
+                        title: (context) => `Local (Grid ID): ${context[0].label}`,
+                        label: (context) => {
+                            const item = apiData[context.dataIndex];
+                            if (context.dataset.label === 'Críticos') {
+                                return ` Críticos: ${item.critical_count}`;
+                            }
+                            if (context.dataset.label === 'Atenção') {
+                                return ` Atenção: ${item.attention_count}`;
+                            }
+                            return '';
+                        },
+                        footer: (context) => {
+                            const item = apiData[context[0].dataIndex];
+                            return `Total de Problemas: ${item.total_problems}`;
+                        }
                     }
                 }
             },
             scales: {
-                x: { title: { display: true, text: 'Ranking dos Piores Locais' } },
-                y: { beginAtZero: true, title: { display: true, text: 'Quantidade de Medições Ruins' } }
+                x: {
+                    stacked: true,
+                    title: {
+                        display: true,
+                        text: 'Ranking dos Piores Locais'
+                    }
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Quantidade de Medições'
+                    }
+                }
             }
         }
     });

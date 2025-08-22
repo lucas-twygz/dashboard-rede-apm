@@ -1,13 +1,85 @@
-body {font-family: Arial, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px;}
-.container {max-width: 1200px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
-h1, h2 {text-align: center; color: #1c2957;}
-.controls {text-align: center; margin-bottom: 20px;}
-.controls button {padding: 10px 20px; font-size: 16px; cursor: pointer; border: 1px solid #ccc; background-color: #f9f9f9; margin: 0 5px; border-radius: 5px; transition: all 0.2s ease-in-out;}
-.controls button:hover {border-color: #007bff;}
-.controls button.active {background-color: #007bff; color: white; border-color: #007bff;}
-#map-container {height: 600px; width: 100%; border: 1px solid #ddd; margin-bottom: 20px; background-color: #e9e9e9; position: relative;}
-#chart-container {position: relative; height: 500px; width: 100%;}
-.loader {font-size: 1.5em; color: #999; text-align: center; padding: 80px 0;}
+:root {
+    /* Cores de Status para o Dashboard */
+    --status-critical: #E61F25;
+    /* Vermelho APM */
+    --status-attention: #FFC107;
+    /* Âmbar / Amarelo */
+
+    /* Outras variáveis de estilo */
+    --background-light: #f4f4f4;
+    --text-dark: #333333;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f2f5;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+h1,
+h2 {
+    text-align: center;
+    color: #1c2957;
+}
+
+.controls {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.controls button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+    margin: 0 5px;
+    border-radius: 5px;
+    transition: all 0.2s ease-in-out;
+}
+
+.controls button:hover {
+    border-color: #007bff;
+}
+
+.controls button.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+#map-container {
+    height: 600px;
+    width: 100%;
+    border: 1px solid #ddd;
+    margin-bottom: 20px;
+    background-color: #e9e9e9;
+    position: relative;
+}
+
+#chart-container {
+    position: relative;
+    height: 500px;
+    width: 100%;
+}
+
+.loader {
+    font-size: 1.5em;
+    color: #999;
+    text-align: center;
+    padding: 80px 0;
+}
 
 /* ESTILO PARA O MARCADOR PULSANTE */
 @keyframes pulse {
@@ -15,10 +87,12 @@ h1, h2 {text-align: center; color: #1c2957;}
         transform: scale(0.95);
         box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7);
     }
+
     70% {
         transform: scale(1);
         box-shadow: 0 0 0 10px rgba(255, 82, 82, 0);
     }
+
     100% {
         transform: scale(0.95);
         box-shadow: 0 0 0 0 rgba(255, 82, 82, 0);
@@ -34,4 +108,37 @@ h1, h2 {text-align: center; color: #1c2957;}
 
 .leaflet-control-attribution {
     display: none;
+}
+
+.copy-id {
+    cursor: pointer;
+    text-decoration: underline;
+    color: #007bff;
+    font-weight: bold;
+}
+
+.copy-id:hover {
+    color: #0056b3;
+}
+
+.copy-feedback {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #28a745; /* Verde sucesso */
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 10000;
+    font-size: 1em;
+    animation: fadeInOut 2.5s forwards;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translate(-50%, 10px); }
+    20% { opacity: 1; transform: translate(-50%, 0); }
+    80% { opacity: 1; transform: translate(-50%, 0); }
+    100% { opacity: 0; transform: translate(-50%, -10px); }
 }

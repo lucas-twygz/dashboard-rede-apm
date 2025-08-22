@@ -3,12 +3,12 @@ import pandas as pd
 from sklearn.cluster import DBSCAN
 import math
 
-# scipy.spatial.ConvexHull não é mais necessário
-# from scipy.spatial import ConvexHull 
-
-EPSILON_METERS = 35 
+# --- CONSTANTES GLOBAIS ---
+EPSILON_METERS = 35
 MIN_SAMPLES = 1
 GRID_SIZE_GPS = 0.0002
+
+# --- FUNÇÕES DE ANÁLISE ---
 
 def classify_point_status(row):
     """Função única e centralizada para classificar um ponto."""
@@ -18,98 +18,128 @@ def classify_point_status(row):
         return 'attention'
     return 'good'
 
-def create_zones_from_points(points, status):
-    """Função de clusterização ATUALIZADA com a nova lógica de raio e opacidade."""
-    if not points:
+def create_zones_from_points(points_df, status):
+    """
+    Função de clusterização ATUALIZADA para incluir detalhes dos pontos.
+    Agora recebe um DataFrame do Pandas.
+    """
+    if points_df.empty:
         return []
-    coords_list = [{'lng': p['lng'], 'lat': p['lat']} for p in points]
-    coords = np.array([[p['lng'], p['lat']] for p in coords_list])
+
+    coords = points_df[['lng', 'lat']].values
     if len(coords) == 0:
         return []
 
-    avg_lat_rad = math.radians(np.mean(coords[:, 1]))
+    avg_lat_rad = math.radians(coords[:, 1].mean())
     epsilon_in_degrees = EPSILON_METERS / (111132.954 * math.cos(avg_lat_rad))
     db = DBSCAN(eps=epsilon_in_degrees, min_samples=MIN_SAMPLES).fit(coords)
     labels = db.labels_
-    
+
     zones = []
     for label in set(labels):
-        cluster_points = coords[labels == label]
-        point_count = len(cluster_points)
+        # Seleciona os pontos do cluster atual
+        cluster_mask = (labels == label)
+        cluster_df = points_df[cluster_mask]
+        cluster_points_coords = coords[cluster_mask]
+        point_count = len(cluster_df)
 
-        # --- NOVA LÓGICA DE RAIO E OPACIDADE ---
-
-        # 1. Define o RAIO (tamanho) com base na contagem de pontos
+        # LÓGICA DE RAIO E OPACIDADE (inalterada)
         if point_count == 1:
-            radius = 10  # Tamanho Pequeno
+            radius = 10
         elif point_count == 2:
-            radius = 15  # Tamanho Médio
-        else: # 3 ou mais pontos
-            radius = 20  # Tamanho Grande (máximo)
+            radius = 15
+        else:
+            radius = 20
 
-        # 2. Define a OPACIDADE (gravidade)
-        opacity = 0.4 # Padrão para pontos 'good'
+        opacity = 0.4
         if status == 'attention':
             base_opacity = 0.5
-            if point_count <= 2:
-                opacity = base_opacity
-            else: # Aumenta progressivamente de 3 a 10 pontos
-                opacity = np.interp(point_count, [3, 10], [0.65, 0.9])
+            opacity = np.interp(point_count, [1, 10], [base_opacity, 0.9]) if point_count > 1 else base_opacity
         elif status == 'critical':
             base_opacity = 0.6
-            if point_count <= 2:
-                opacity = base_opacity
-            else: # Aumenta progressivamente de 3 a 10 pontos
-                opacity = np.interp(point_count, [3, 10], [0.75, 1.0])
+            opacity = np.interp(point_count, [1, 10], [base_opacity, 1.0]) if point_count > 1 else base_opacity
 
-        # 3. Cria a feature SEMPRE como um Ponto (círculo)
-        centroid = np.mean(cluster_points, axis=0)
+        # --- NOVA LÓGICA: Coleta de detalhes ---
+        point_details = []
+        for _, row in cluster_df.iterrows():
+            point_details.append({
+                'id': row['tablet_android_id'],
+                # Formata o timestamp para mostrar apenas a hora
+                'time': pd.to_datetime(row['timestamp']).strftime('%H:%M:%S')
+            })
+
+        centroid = np.mean(cluster_points_coords, axis=0)
         feature = {
             "type": "Feature",
             "properties": {
                 "status": status,
                 "point_count": point_count,
                 "radius": radius,
-                "opacity": round(opacity, 2) # Envia a opacidade calculada
+                "opacity": round(opacity, 2),
+                "point_details": point_details  # Adiciona os detalhes ao GeoJSON
             },
-            "geometry": {
-                "type": "Point",
-                "coordinates": centroid.tolist()
-            }
+            "geometry": { "type": "Point", "coordinates": centroid.tolist() }
         }
         zones.append(feature)
     return zones
 
-# As funções abaixo não precisam de alteração
 def generate_map_data(df):
-    # ... (código inalterado) ...
-    if df.empty: return {'critical_zones': [], 'attention_zones': [], 'good_zones': []}
-    df['status'] = df.apply(classify_point_status, axis=1)
-    points_data = {
-        'critical': df[df['status'] == 'critical'].rename(columns={'latitude': 'lat', 'longitude': 'lng'}).to_dict('records'),
-        'attention': df[df['status'] == 'attention'].rename(columns={'latitude': 'lat', 'longitude': 'lng'}).to_dict('records'),
-        'good': df[df['status'] == 'good'].rename(columns={'latitude': 'lat', 'longitude': 'lng'}).to_dict('records')
-    }
-    critical_zones = create_zones_from_points(points_data['critical'], 'critical')
-    attention_zones = create_zones_from_points(points_data['attention'], 'attention')
-    good_zones = create_zones_from_points(points_data['good'], 'good')
+    """Prepara os dados para a visualização do mapa, separando por status."""
+    if df.empty:
+        return {'critical_zones': [], 'attention_zones': [], 'good_zones': []}
+
+    df_copy = df.copy()
+    df_copy['status'] = df_copy.apply(classify_point_status, axis=1)
+    df_copy.rename(columns={'latitude': 'lat', 'longitude': 'lng'}, inplace=True)
+
+    # Converte para DataFrame para passar para a função de clusterização
+    critical_df = pd.DataFrame(df_copy[df_copy['status'] == 'critical'])
+    attention_df = pd.DataFrame(df_copy[df_copy['status'] == 'attention'])
+    good_df = pd.DataFrame(df_copy[df_copy['status'] == 'good'])
+
+    critical_zones = create_zones_from_points(critical_df, 'critical')
+    attention_zones = create_zones_from_points(attention_df, 'attention')
+    good_zones = create_zones_from_points(good_df, 'good')
+
     return {'critical_zones': critical_zones, 'attention_zones': attention_zones, 'good_zones': good_zones}
 
-def get_top_critical_points(df):
-    # ... (código inalterado) ...
-    if df.empty: return {'labels': [], 'datasets': []}
-    df['status'] = df.apply(classify_point_status, axis=1)
-    df['is_bad'] = df['status'].apply(lambda s: 1 if s in ['critical', 'attention'] else 0)
-    df['grid_lat'] = (df['latitude'] // GRID_SIZE_GPS).astype(int)
-    df['grid_lon'] = (df['longitude'] // GRID_SIZE_GPS).astype(int)
-    df['grid_id'] = df['grid_lat'].astype(str) + '_' + df['grid_lon'].astype(str)
-    grid_agg = df.groupby('grid_id').agg(avg_lat=('latitude', 'mean'), avg_lon=('longitude', 'mean'), total_points=('tablet_android_id', 'count'), bad_points=('is_bad', 'sum')).reset_index()
-    grid_agg = grid_agg[grid_agg['bad_points'] > 0]
-    top_10 = grid_agg.sort_values(by='bad_points', ascending=False).head(10)
-    chart_data = {
-        'labels': [f"{i+1}º" for i in range(len(top_10))],
-        'datasets': [{'label': 'Quantidade de Medições Ruins', 'data': top_10['bad_points'].tolist(),
-            'full_data': [{'grid_id': r['grid_id'], 'total': r['total_points'], 'bad': r['bad_points'], 'lat': r['avg_lat'], 'lng': r['avg_lon']} for i, r in top_10.iterrows()]
-        }]
-    }
-    return chart_data
+# --- FUNÇÃO DO GRÁFICO TOP 10 (ATUALIZADA) ---
+def get_top_problem_locations(df):
+    if df.empty:
+        return []
+
+    df_copy = df.copy()
+    df_copy['status'] = df_copy.apply(classify_point_status, axis=1)
+    df_copy['grid_lat'] = (df_copy['latitude'] // GRID_SIZE_GPS).astype(int)
+    df_copy['grid_lon'] = (df_copy['longitude'] // GRID_SIZE_GPS).astype(int)
+    df_copy['grid_id'] = df_copy['grid_lat'].astype(str) + '_' + df_copy['grid_lon'].astype(str)
+
+    problem_points = df_copy[df_copy['status'].isin(['critical', 'attention'])].copy()
+    if problem_points.empty:
+        return []
+
+    counts = problem_points.groupby(['grid_id', 'status']).size()
+    counts_df = counts.unstack(fill_value=0)
+
+    if 'critical' not in counts_df.columns:
+        counts_df['critical'] = 0
+    if 'attention' not in counts_df.columns:
+        counts_df['attention'] = 0
+
+    counts_df['total_problems'] = counts_df['critical'] + counts_df['attention']
+    top_10 = counts_df.sort_values(by='total_problems', ascending=False).head(10)
+    
+    # Versão otimizada para encontrar a coordenada do ponto mais grave
+    top_10_grids = top_10.index
+    top_points = problem_points[problem_points['grid_id'].isin(top_10_grids)].copy()
+    top_points['status_cat'] = pd.Categorical(top_points['status'], categories=['critical', 'attention'], ordered=True)
+    top_points.sort_values('status_cat', inplace=True)
+    coords_df = top_points.drop_duplicates(subset='grid_id', keep='first')[['grid_id', 'latitude', 'longitude']]
+    coords_df.set_index('grid_id', inplace=True)
+    coords_df.rename(columns={'latitude': 'lat', 'longitude': 'lon'}, inplace=True)
+
+    final_top_10 = top_10.join(coords_df)
+    final_top_10.reset_index(inplace=True)
+    final_top_10.rename(columns={'critical': 'critical_count', 'attention': 'attention_count'}, inplace=True)
+
+    return final_top_10.to_dict(orient='records')

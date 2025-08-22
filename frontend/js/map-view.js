@@ -1,3 +1,4 @@
+console.log("Arquivo map-view.js carregado com sucesso!");
 const patioView = { lat: -3.549806, lng: -38.811906, zoom: 17 };
 const tmutView = { lat: -3.525506, lng: -38.797690, zoom: 16 };
 
@@ -19,8 +20,6 @@ export function initMap() {
         accessToken: mapboxAccessToken
     }).addTo(map);
 
-    map.setView([patioView.lat, patioView.lng], patioView.zoom);
-
     goodZonesLayer = L.layerGroup().addTo(map);
     attentionZonesLayer = L.layerGroup().addTo(map);
     criticalZonesLayer = L.layerGroup().addTo(map);
@@ -32,7 +31,6 @@ export function setMapView(mapName) {
 }
 
 export function focusOnPoint(lat, lng) {
-    // ... (código inalterado) ...
     if (tempMarker) { map.removeLayer(tempMarker); }
     map.setView([lat, lng], 18);
     tempMarker = L.marker([lat, lng], {
@@ -48,27 +46,67 @@ export function drawMapData(data) {
 
     const draw = (zoneData, defaultStyle, tooltipPrefix, layerGroup) => {
         if (!zoneData || zoneData.length === 0) return;
-        
+
         L.geoJSON(zoneData, {
-            // A opção 'style' para polígonos não é mais necessária, pois só temos pontos
             pointToLayer: (feature, latlng) => {
                 const props = feature.properties;
-                // Cria o círculo usando as propriedades enviadas pela API
                 return L.circle(latlng, {
-                    radius: props.radius, // Raio dinâmico
+                    radius: props.radius,
                     fillColor: defaultStyle.color,
                     color: defaultStyle.color,
                     weight: 1,
-                    fillOpacity: props.opacity // Opacidade dinâmica
+                    fillOpacity: props.opacity
                 });
             },
             onEachFeature: (feature, layer) => {
-                layer.bindTooltip(`<b>${tooltipPrefix}</b><br>Medições Agrupadas: ${feature.properties.point_count}`);
+                const props = feature.properties;
+                let tooltipContent = `<b>${tooltipPrefix}</b><br>Medições Agrupadas: ${props.point_count}`;
+
+                if (props.point_details && props.point_details.length > 0) {
+                    tooltipContent += `<hr style="margin: 5px 0;">`;
+                    props.point_details.forEach(detail => {
+                        tooltipContent += `<span class="copy-id" title="Clique para copiar">${detail.id}</span>, ${detail.time}<br>`;
+                    });
+                }
+                
+                let tooltipCloseTimeout;
+
+                // Nova lógica para abrir e fechar o tooltip com atraso
+                layer.on('mouseover', function(e) {
+                    // Limpa o temporizador se o mouse voltar para o marcador
+                    clearTimeout(tooltipCloseTimeout);
+                    
+                    // Abre o tooltip se ainda não estiver aberto
+                    if (!this.getTooltip() || !this.getTooltip().isOpen()) {
+                        this.bindTooltip(tooltipContent, { interactive: true, offset: L.point(15, 0) }).openTooltip(e.latlng);
+                        const tooltipEl = this.getTooltip()._container;
+
+                        // Adiciona ouvintes para o tooltip
+                        tooltipEl.addEventListener('mouseover', () => {
+                            clearTimeout(tooltipCloseTimeout);
+                        });
+
+                        tooltipEl.addEventListener('mouseout', () => {
+                            // Inicia o contador de tempo quando o mouse sai
+                            console.time('Tempo de fechamento do tooltip');
+                            tooltipCloseTimeout = setTimeout(() => {
+                                this.closeTooltip();
+                                console.timeEnd('Tempo de fechamento do tooltip');
+                            }, 200); // Atraso de 200ms
+                        });
+                    }
+                });
+
+                layer.on('mouseout', function() {
+                    // Inicia o temporizador ao sair do marcador
+                    tooltipCloseTimeout = setTimeout(() => {
+                        this.closeTooltip();
+                    }, 200);
+                });
             }
         }).addTo(layerGroup);
     };
 
-    // As opções de cor agora são mais simples
     draw(data.good_zones, { color: 'lime' }, 'Zona de Rede Boa', goodZonesLayer);
     draw(data.attention_zones, { color: 'yellow' }, 'Zona de Rede Média', attentionZonesLayer);
     draw(data.critical_zones, { color: 'red' }, 'Zona de Rede Ruim', criticalZonesLayer);
