@@ -60,6 +60,7 @@ h2 {
 }
 
 #map-container {
+    border-radius: 15px;
     height: 600px;
     width: 100%;
     border: 1px solid #ddd;
