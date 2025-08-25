@@ -1,4 +1,3 @@
-console.log("Arquivo map-view.js carregado com sucesso!");
 const patioView = { lat: -3.549806, lng: -38.811906, zoom: 17 };
 const tmutView = { lat: -3.525506, lng: -38.797690, zoom: 16 };
 
@@ -60,48 +59,28 @@ export function drawMapData(data) {
             },
             onEachFeature: (feature, layer) => {
                 const props = feature.properties;
-                let tooltipContent = `<b>${tooltipPrefix}</b><br>Medições Agrupadas: ${props.point_count}`;
+
+                // CONTEÚDO PARA O POPUP
+                let popupContent = `<div class="popup-content"><b>${tooltipPrefix}</b><br>Medições Agrupadas: ${props.point_count}<hr style="margin: 5px 0;">`;
 
                 if (props.point_details && props.point_details.length > 0) {
-                    tooltipContent += `<hr style="margin: 5px 0;">`;
                     props.point_details.forEach(detail => {
-                        tooltipContent += `<span class="copy-id" title="Clique para copiar">${detail.id}</span>, ${detail.time}<br>`;
+                        popupContent += `<div><span class="copy-id" title="Clique para copiar">${detail.id}</span>, ${detail.time}</div>`;
                     });
                 }
+                popupContent += `</div>`;
                 
-                let tooltipCloseTimeout;
-
-                // Nova lógica para abrir e fechar o tooltip com atraso
-                layer.on('mouseover', function(e) {
-                    // Limpa o temporizador se o mouse voltar para o marcador
-                    clearTimeout(tooltipCloseTimeout);
-                    
-                    // Abre o tooltip se ainda não estiver aberto
-                    if (!this.getTooltip() || !this.getTooltip().isOpen()) {
-                        this.bindTooltip(tooltipContent, { interactive: true, offset: L.point(15, 0) }).openTooltip(e.latlng);
-                        const tooltipEl = this.getTooltip()._container;
-
-                        // Adiciona ouvintes para o tooltip
-                        tooltipEl.addEventListener('mouseover', () => {
-                            clearTimeout(tooltipCloseTimeout);
-                        });
-
-                        tooltipEl.addEventListener('mouseout', () => {
-                            // Inicia o contador de tempo quando o mouse sai
-                            console.time('Tempo de fechamento do tooltip');
-                            tooltipCloseTimeout = setTimeout(() => {
-                                this.closeTooltip();
-                                console.timeEnd('Tempo de fechamento do tooltip');
-                            }, 200); // Atraso de 200ms
-                        });
-                    }
+                // TOOLTIP DE VISUALIZAÇÃO RÁPIDA (no hover)
+                layer.bindTooltip(`<b>${tooltipPrefix}</b><br>${props.point_count} medições agrupadas`, {
+                    interactive: false, // Tooltip não é clicável
+                    permanent: false // Sobe e desce com o mouse
                 });
 
-                layer.on('mouseout', function() {
-                    // Inicia o temporizador ao sair do marcador
-                    tooltipCloseTimeout = setTimeout(() => {
-                        this.closeTooltip();
-                    }, 200);
+                // POPUP INTERATIVO (no clique)
+                layer.bindPopup(popupContent, {
+                    interactive: true,
+                    // Garante que o popup está na mesma posição sempre
+                    autoPan: true
                 });
             }
         }).addTo(layerGroup);

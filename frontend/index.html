@@ -6,18 +6,44 @@
     <title>Dashboard Wi-Fi</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
         <h1>Dashboard Check Signal - APM Terminals Pecém</h1>
+        
         <div class="controls">
-            <button id="btn-patio" class="active">Pátio</button>
-            <button id="btn-tmut">TMUT</button>
+            <div id="map-date-info"></div>
+
+            <div class="date-filters">
+                <div class="date-filter-group">
+                    <label for="date-start">Data Início:</label>
+                    <input type="date" id="date-start">
+                </div>
+                <div class="date-filter-group">
+                    <label for="date-end">Data Fim:</label>
+                    <input type="date" id="date-end">
+                </div>
+                <button id="btn-reset-filter" title="Resetar para ontem">Resetar</button>
+            </div>
         </div>
+
         <div id="map-container"></div>
+        
+        <div class="below-map-controls">
+            <div class="map-buttons">
+                <button id="btn-patio" class="active">Pátio</button>
+                <button id="btn-tmut">TMUT</button>
+                <button id="btn-reset-map" title="Resetar zoom e posição">Resetar Mapa</button>
+            </div>
+        </div>
+
         <div id="chart-container">
             <h2>Top 10 Pontos Críticos</h2>
             <canvas id="critical-points-chart"></canvas>
+            <p id="no-chart-data-message" class="hidden">Não foi encontrado nenhum ponto crítico ou de atenção nesse intervalo de tempo</p>
         </div>
     </div>
 

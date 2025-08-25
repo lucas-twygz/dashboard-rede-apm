@@ -8,7 +8,6 @@ app = Flask(__name__)
 CORS(app)
 
 # --- CONFIGURAÇÕES GLOBAIS ---
-
 BUFFER_GPS = 0.005
 TMUT_CENTER_LAT = -3.525506
 TMUT_CENTER_LON = -38.797690
@@ -28,51 +27,57 @@ MAPS_CONFIG = {
     }
 }
 
-# --- FUNÇÃO HELPER CENTRALIZADA ---
-
-def get_filtered_data_by_map(map_name):
+# --- FUNÇÃO HELPER CENTRALIZADA (ATUALIZADA) ---
+def get_filtered_data(map_name=None, start_date=None, end_date=None):
     """
-    Busca todos os pontos do banco de dados e filtra por um mapa específico
-    se um nome de mapa válido for fornecido.
+    Busca todos os pontos e filtra por mapa e/ou intervalo de datas.
     """
     df = database.get_all_raw_points()
+    if df.empty:
+        return df
+
+    # Converte timestamp para datetime para permitir a filtragem
+    # O errors='coerce' transforma datas inválidas em NaT (Not a Time)
+    df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
+    df.dropna(subset=['timestamp'], inplace=True) # Remove linhas com datas inválidas
+
+    # --- NOVO: Filtro por data ---
+    if start_date and end_date:
+        start = pd.to_datetime(start_date)
+        end = pd.to_datetime(end_date).replace(hour=23, minute=59, second=59) # Inclui o dia todo
+        df = df[(df['timestamp'] >= start) & (df['timestamp'] <= end)]
+
+    # Filtro por mapa (geográfico)
     if map_name and map_name in MAPS_CONFIG:
         bounds = MAPS_CONFIG[map_name]
-        df_filtered = df[
+        df = df[
             (df['latitude'].between(bounds['lat_bottom'], bounds['lat_top'])) &
             (df['longitude'].between(bounds['lon_left'], bounds['lon_right']))
         ]
-        return df_filtered.copy()
-    return df
+    
+    return df.copy()
 
-# --- ROTAS DA API ---
-
+# --- ROTAS DA API (ATUALIZADAS) ---
 @app.route('/api/map_data', methods=['GET'])
 def map_data_route():
-    """
-    Endpoint que retorna os dados das zonas (clusters) para o mapa.
-    Agora respeita o filtro de mapa passado via query string.
-    """
     map_name = request.args.get('map', None)
-    df_filtered = get_filtered_data_by_map(map_name)
+    start_date = request.args.get('start_date', None)
+    end_date = request.args.get('end_date', None)
+    
+    df_filtered = get_filtered_data(map_name, start_date, end_date)
     zones_data = analysis.generate_map_data(df_filtered)
     return jsonify(zones_data)
 
 @app.route('/api/critical_points', methods=['GET'])
 def critical_points_route():
-    """
-    Endpoint que retorna os dados para o gráfico Top 10.
-    Respeita o filtro de mapa passado via query string.
-    """
     map_name = request.args.get('map', None)
-    df_filtered = get_filtered_data_by_map(map_name)
+    start_date = request.args.get('start_date', None)
+    end_date = request.args.get('end_date', None)
 
-    # A análise do Top 10 agora é feita apenas com os dados filtrados
-    # <<< LINHA CORRIGIDA >>>
+    df_filtered = get_filtered_data(map_name, start_date, end_date)
     chart_data = analysis.get_top_problem_locations(df_filtered)
     return jsonify(chart_data)
 
 # --- INICIALIZAÇÃO DO SERVIDOR ---
-
 if __name__ == '__main__':
     app.run(debug=True)

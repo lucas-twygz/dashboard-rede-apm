@@ -2,57 +2,71 @@ import pandas as pd
 import sqlite3
 import os
 
-DB_FOLDER = 'db'
-CSV_FILE_PATH = r'C:\APPS\Check Signal\data\raw_data.csv'
-DB_FILE_PATH = os.path.join(DB_FOLDER, 'dashboard.db')
-CONTROL_FILE_PATH = os.path.join(DB_FOLDER, 'last_processed.txt')
-
-def setup_environment():
-    if not os.path.exists(DB_FOLDER): os.makedirs(DB_FOLDER)
-
-def initialize_database():
-    conn = sqlite3.connect(DB_FILE_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS raw_points (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT, tablet_android_id TEXT,
-        signal_dbm REAL, latency_ms REAL, packet_loss_percent REAL,
-        latitude REAL, longitude REAL
-    )
-    ''')
-    conn.commit()
-    conn.close()
+# --- CONFIGURAÇÃO ---
+DB_PATH = 'db/dashboard.db'
+# Certifique-se de que este caminho está correto para a sua máquina
+CSV_PATH = r'C:\APPS\Check Signal\data\raw_data.csv' 
+# <<< LINHA CORRIGIDA >>>
+STATE_FILE_PATH = 'db/.last_processed_line'
 
 def get_last_processed_line():
-    if not os.path.exists(CONTROL_FILE_PATH): return 0
-    with open(CONTROL_FILE_PATH, 'r') as f:
-        try: return int(f.read().strip())
-        except (ValueError, IndexError): return 0
+    """Lê o número da última linha processada do arquivo de estado."""
+    try:
+        with open(STATE_FILE_PATH, 'r') as f:
+            return int(f.read().strip())
+    except (FileNotFoundError, ValueError):
+        return 0
 
-def update_last_processed_line(line_count):
-    with open(CONTROL_FILE_PATH, 'w') as f: f.write(str(line_count))
+def save_last_processed_line(line_count):
+    """Salva o número total de linhas processadas no arquivo de estado."""
+    with open(STATE_FILE_PATH, 'w') as f:
+        f.write(str(line_count))
 
 def process_log_data():
     print("Iniciando ETL: Lendo novos dados brutos...")
-    last_line = get_last_processed_line()
+    
     try:
-        df = pd.read_csv(CSV_FILE_PATH, skiprows=range(1, last_line + 1))
-        if df.empty: print("Nenhum dado novo para processar."); return
-        new_total_lines = last_line + len(df)
-    except Exception as e:
-        print(f"Erro ao ler o arquivo CSV: {e}"); return
+        full_df = pd.read_csv(CSV_PATH)
+        total_lines_in_file = len(full_df)
+    except FileNotFoundError:
+        print(f"Erro: Arquivo '{CSV_PATH}' não encontrado. Verifique o caminho.")
+        return
+
+    last_line = get_last_processed_line()
+    df = full_df.iloc[last_line:].copy()
+    
+    if df.empty:
+        print("Nenhuma nova linha encontrada. Processamento finalizado.")
+        return
 
     print(f"Lendo {len(df)} novas linhas de dados.")
-    df['timestamp'] = pd.to_datetime(df['data'] + ' ' + df['hora'])
-    df_to_save = df[['timestamp', 'tablet_android_id', 'sinal_avg_dbm', 'latencia_avg_ms', 'packet_loss_percent', 'latitude', 'longitude']].copy()
-    df_to_save.rename(columns={'sinal_avg_dbm': 'signal_dbm', 'latencia_avg_ms': 'latency_ms'}, inplace=True)
-    conn = sqlite3.connect(DB_FILE_PATH)
-    df_to_save.to_sql('raw_points', conn, if_exists='append', index=False)
-    conn.close()
-    update_last_processed_line(new_total_lines)
-    print(f"Novos dados salvos no banco. Total de linhas processadas: {new_total_lines}.")
+    
+    try:
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df['latitude'] = pd.to_numeric(df['latitude'])
+        df['longitude'] = pd.to_numeric(df['longitude'])
+        
+    except KeyError as e:
+        print(f"Erro de schema: Coluna '{e}' ausente no CSV.")
+        return
+    except Exception as e:
+        print(f"Erro ao processar os dados: {e}")
+        return
+
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        df.to_sql('raw_points', conn, if_exists='append', index=False)
+        print("Dados processados e salvos com sucesso no banco de dados.")
+
+        save_last_processed_line(total_lines_in_file)
+        print(f"Estado atualizado: {total_lines_in_file} linhas processadas no total.")
+        
+    except sqlite3.Error as e:
+        print(f"Erro no banco de dados: {e}")
+    finally:
+        if conn:
+            conn.close()
 
 if __name__ == '__main__':
-    setup_environment()
-    initialize_database()
     process_log_data()

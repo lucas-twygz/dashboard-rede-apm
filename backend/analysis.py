@@ -37,13 +37,11 @@ def create_zones_from_points(points_df, status):
 
     zones = []
     for label in set(labels):
-        # Seleciona os pontos do cluster atual
         cluster_mask = (labels == label)
-        cluster_df = points_df[cluster_mask]
+        cluster_df = points_df.loc [cluster_mask]
         cluster_points_coords = coords[cluster_mask]
         point_count = len(cluster_df)
 
-        # LÓGICA DE RAIO E OPACIDADE (inalterada)
         if point_count == 1:
             radius = 10
         elif point_count == 2:
@@ -59,13 +57,13 @@ def create_zones_from_points(points_df, status):
             base_opacity = 0.6
             opacity = np.interp(point_count, [1, 10], [base_opacity, 1.0]) if point_count > 1 else base_opacity
 
-        # --- NOVA LÓGICA: Coleta de detalhes ---
         point_details = []
-        for _, row in cluster_df.iterrows():
+        for index, row in cluster_df.iterrows():
+            timestamp = pd.to_datetime(row['timestamp'])
+            formatted_time = timestamp.strftime('%d/%m/%Y %H:%M:%S')  # Formato DD/MM/YYYY HH:MM:SS
             point_details.append({
                 'id': row['tablet_android_id'],
-                # Formata o timestamp para mostrar apenas a hora
-                'time': pd.to_datetime(row['timestamp']).strftime('%H:%M:%S')
+                'time': formatted_time
             })
 
         centroid = np.mean(cluster_points_coords, axis=0)
@@ -76,7 +74,7 @@ def create_zones_from_points(points_df, status):
                 "point_count": point_count,
                 "radius": radius,
                 "opacity": round(opacity, 2),
-                "point_details": point_details  # Adiciona os detalhes ao GeoJSON
+                "point_details": point_details
             },
             "geometry": { "type": "Point", "coordinates": centroid.tolist() }
         }
@@ -92,7 +90,6 @@ def generate_map_data(df):
     df_copy['status'] = df_copy.apply(classify_point_status, axis=1)
     df_copy.rename(columns={'latitude': 'lat', 'longitude': 'lng'}, inplace=True)
 
-    # Converte para DataFrame para passar para a função de clusterização
     critical_df = pd.DataFrame(df_copy[df_copy['status'] == 'critical'])
     attention_df = pd.DataFrame(df_copy[df_copy['status'] == 'attention'])
     good_df = pd.DataFrame(df_copy[df_copy['status'] == 'good'])
@@ -103,7 +100,6 @@ def generate_map_data(df):
 
     return {'critical_zones': critical_zones, 'attention_zones': attention_zones, 'good_zones': good_zones}
 
-# --- FUNÇÃO DO GRÁFICO TOP 10 (ATUALIZADA) ---
 def get_top_problem_locations(df):
     if df.empty:
         return []
@@ -128,8 +124,7 @@ def get_top_problem_locations(df):
 
     counts_df['total_problems'] = counts_df['critical'] + counts_df['attention']
     top_10 = counts_df.sort_values(by='total_problems', ascending=False).head(10)
-    
-    # Versão otimizada para encontrar a coordenada do ponto mais grave
+
     top_10_grids = top_10.index
     top_points = problem_points[problem_points['grid_id'].isin(top_10_grids)].copy()
     top_points['status_cat'] = pd.Categorical(top_points['status'], categories=['critical', 'attention'], ordered=True)
@@ -143,3 +138,11 @@ def get_top_problem_locations(df):
     final_top_10.rename(columns={'critical': 'critical_count', 'attention': 'attention_count'}, inplace=True)
 
     return final_top_10.to_dict(orient='records')
+
+def get_raw_data_by_id(android_id):
+    """Função para buscar dados brutos por android_id (não utilizada na lógica atual do popup)"""
+    df = database.get_all_raw_points()
+    return df[df['tablet_android_id'] == android_id].to_dict(orient='records')
+
+if __name__ == '__main__':
+    app.run(debug=True)

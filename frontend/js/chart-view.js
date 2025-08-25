@@ -21,13 +21,13 @@ export function drawProblemChart(apiData, onBarClickCallback) {
         data: {
             labels: labels,
             datasets: [{
-                label: 'Atenção',
-                data: attentionData,
-                backgroundColor: '#FFC107' ,
-            }, {
                 label: 'Críticos',
                 data: criticalData,
                 backgroundColor: '#E61F25',
+            }, {
+                label: 'Atenção',
+                data: attentionData,
+                backgroundColor: '#FFC107',
             }]
         },
         options: {
@@ -46,19 +46,26 @@ export function drawProblemChart(apiData, onBarClickCallback) {
                 legend: {
                     display: true,
                     position: 'top',
+                    labels: {
+                        // NOVO: Cor da legenda
+                        color: '#f0f0f0',
+                        font: {
+                            family: 'Lato'
+                        }
+                    }
                 },
                 tooltip: {
                     callbacks: {
                         title: (context) => `Local (Grid ID): ${context[0].label}`,
                         label: (context) => {
-                            const item = apiData[context.dataIndex];
-                            if (context.dataset.label === 'Críticos') {
-                                return ` Críticos: ${item.critical_count}`;
-                            }
-                            if (context.dataset.label === 'Atenção') {
-                                return ` Atenção: ${item.attention_count}`;
-                            }
-                            return '';
+                             const item = apiData[context.dataIndex];
+                             if (context.dataset.label === 'Críticos') {
+                                 return ` Críticos: ${item.critical_count}`;
+                             }
+                             if (context.dataset.label === 'Atenção') {
+                                 return ` Atenção: ${item.attention_count}`;
+                             }
+                             return '';
                         },
                         footer: (context) => {
                             const item = apiData[context[0].dataIndex];
@@ -72,7 +79,20 @@ export function drawProblemChart(apiData, onBarClickCallback) {
                     stacked: true,
                     title: {
                         display: true,
-                        text: 'Ranking dos Piores Locais'
+                        text: 'Ranking dos Piores Locais',
+                        // NOVO: Cor do título do eixo X
+                        color: '#f0f0f0',
+                        font: {
+                            family: 'Lato',
+                            size: 14
+                        }
+                    },
+                    ticks: {
+                        // NOVO: Cor dos rótulos do eixo X
+                        color: '#f0f0f0',
+                        font: {
+                            family: 'Lato'
+                        }
                     }
                 },
                 y: {
@@ -80,7 +100,20 @@ export function drawProblemChart(apiData, onBarClickCallback) {
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Quantidade de Medições'
+                        text: 'Quantidade de Medições',
+                        // NOVO: Cor do título do eixo Y
+                        color: '#f0f0f0',
+                        font: {
+                            family: 'Lato',
+                            size: 14
+                        }
+                    },
+                    ticks: {
+                        // NOVO: Cor dos rótulos do eixo Y
+                        color: '#f0f0f0',
+                        font: {
+                            family: 'Lato'
+                        }
                     }
                 }
             }
