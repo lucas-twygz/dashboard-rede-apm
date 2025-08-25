@@ -1,4 +1,4 @@
-import { fetchMapData, fetchCriticalPoints } from './api.js';
+import { fetchMapData, fetchCriticalPoints, fetchKpis } from './api.js';
 import { initMap, drawMapData, setMapView, focusOnPoint } from './map-view.js';
 import { drawProblemChart } from './chart-view.js';
 
@@ -11,6 +11,38 @@ function showCopyFeedback(text) {
     document.body.appendChild(feedbackEl);
     setTimeout(() => { feedbackEl.remove(); }, 2500);
 }
+
+// --- NOVA FUNÇÃO DE CÓPIA ROBUSTA COM FALLBACK ---
+async function copyTextToClipboard(text, successMessage) {
+    // Tenta usar a API moderna primeiro (requer HTTPS ou localhost)
+    if (navigator.clipboard && window.isSecureContext) {
+        try {
+            await navigator.clipboard.writeText(text);
+            showCopyFeedback(successMessage);
+            return;
+        } catch (err) {
+            console.error('Falha ao copiar com a API moderna:', err);
+        }
+    }
+
+    // Fallback para o método antigo (funciona em HTTP)
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed'; // Previne rolagem
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        showCopyFeedback(successMessage);
+    } catch (err) {
+        console.error('Falha ao copiar com o método de fallback:', err);
+        showCopyFeedback('Erro ao copiar');
+    }
+    document.body.removeChild(textArea);
+}
+
 
 document.addEventListener('DOMContentLoaded', () => {
     const btnPatio = document.getElementById('btn-patio');
@@ -26,6 +58,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const chartTitle = document.querySelector('#chart-container h2');
     const loadingOverlay = document.getElementById('loading-overlay');
     const btnExportExcel = document.getElementById('btn-export-excel');
+    const kpiTotalMeasurements = document.getElementById('kpi-total-measurements');
+    const kpiCriticalPercentage = document.getElementById('kpi-critical-percentage');
+    const kpiDisconnections = document.getElementById('kpi-disconnections');
+    const kpiWorstTablet = document.getElementById('kpi-worst-tablet');
     
     let currentMap = 'patio';
     let lastValidStartDate = '';
@@ -85,6 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         try {
             await Promise.all([
+                updateKpis(currentMap, startDate, endDate, ssidFilter),
                 updateMap(currentMap, startDate, endDate, ssidFilter),
                 updateDashboard(currentMap, startDate, endDate, ssidFilter)
             ]);
@@ -94,6 +131,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             if (!isAutoRefresh) loadingOverlay.classList.add('hidden');
         }
+    }
+
+    async function updateKpis(mapName, startDate, endDate, ssidFilter) {
+        const kpiData = await fetchKpis(mapName, startDate, endDate, ssidFilter);
+        kpiTotalMeasurements.textContent = kpiData.total_measurements;
+        kpiCriticalPercentage.textContent = `${kpiData.critical_percentage}%`;
+        kpiDisconnections.textContent = kpiData.disconnections;
+        kpiWorstTablet.textContent = kpiData.worst_tablet;
     }
     
     async function updateDashboard(mapName, startDate, endDate, ssidFilter) {
@@ -113,15 +158,15 @@ document.addEventListener('DOMContentLoaded', () => {
         drawMapData(mapData);
     }
     
+    // --- LÓGICA DE CÓPIA ATUALIZADA PARA USAR A NOVA FUNÇÃO ---
     document.body.addEventListener('click', (event) => {
-        if (event.target.classList.contains('copy-id')) {
-            const idToCopy = event.target.textContent;
-            navigator.clipboard.writeText(idToCopy).then(() => {
-                showCopyFeedback('ID Copiado!');
-            }).catch(err => {
-                console.error('Falha ao copiar ID:', err);
-                showCopyFeedback('Erro ao copiar');
-            });
+        const copyElement = event.target.closest('.copy-id');
+        if (copyElement) {
+            const idToCopy = copyElement.textContent;
+            if (idToCopy && idToCopy !== '-' && idToCopy !== 'N/A') {
+                const message = copyElement.id === 'kpi-worst-tablet' ? 'ID do Tablet Copiado!' : 'ID Copiado!';
+                copyTextToClipboard(idToCopy, message);
+            }
         }
     });
 
@@ -154,43 +199,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     dateEndInput.addEventListener('change', () => updateAllViews());
 
-    // --- LÓGICA DE EXPORTAÇÃO (ATUALIZADA) ---
     btnExportExcel.addEventListener('click', async () => {
         const startDate = dateStartInput.value;
         const endDate = dateEndInput.value;
-
         if (!startDate || !endDate) {
             alert("Por favor, selecione as datas de início e fim para exportar.");
             return;
         }
-
         if (startDate > endDate) {
             alert("A data de início não pode ser maior que a data de fim.");
             return;
         }
-        
         loadingOverlay.classList.remove('hidden');
-
         try {
             const exportUrl = `/api/export?start_date=${startDate}&end_date=${endDate}`;
-            
-            // Faz a requisição usando fetch para inspecionar a resposta
             const response = await fetch(exportUrl);
-
-            // Se a resposta NÃO for OK (ex: 404 Not Found), lemos o texto e mostramos o alerta
             if (!response.ok) {
                 const errorMessage = await response.text();
-                alert(errorMessage); // Mostra o aviso na tela
-                return; // Interrompe a execução
+                alert(errorMessage);
+                return;
             }
-
-            // Se a resposta for OK, processamos o arquivo para download
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.style.display = 'none';
             a.href = url;
-            // Pega o nome do arquivo do cabeçalho da resposta, se disponível
             const disposition = response.headers.get('Content-Disposition');
             let filename = `Relatorio_WiFi_${startDate}_a_${endDate}.xlsx`;
             if (disposition && disposition.indexOf('attachment') !== -1) {
@@ -205,16 +238,14 @@ document.addEventListener('DOMContentLoaded', () => {
             a.click();
             window.URL.revokeObjectURL(url);
             a.remove();
-
         } catch (error) {
             console.error('Erro ao exportar arquivo:', error);
             alert('Ocorreu um erro inesperado ao tentar exportar o arquivo.');
         } finally {
-            loadingOverlay.classList.add('hidden'); // Esconde o spinner em qualquer cenário
+            loadingOverlay.classList.add('hidden');
         }
     });
 
-    // --- INICIALIZAÇÃO ---
     setDefaultDateToYesterday();
     updateAllViews();
     setInterval(() => {

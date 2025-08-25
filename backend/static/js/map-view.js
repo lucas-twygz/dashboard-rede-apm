@@ -1,4 +1,4 @@
-const patioView = { lat: -3.549806, lng: -38.811906, zoom: 17 };
+const patioView = { lat: -3.549506, lng: -38.811906, zoom: 17 };
 const tmutView = { lat: -3.525506, lng: -38.797690, zoom: 16 };
 
 let map;

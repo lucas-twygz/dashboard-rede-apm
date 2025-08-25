@@ -13,7 +13,6 @@ BUFFER_GPS = 0.005
 TMUT_CENTER_LAT = -3.525506
 TMUT_CENTER_LON = -38.797690
 OPERATIONAL_SSID = "2G_6qmzayp"
-
 MAPS_CONFIG = {
     'patio': { 'lat_top': -3.543, 'lat_bottom': -3.556, 'lon_left': -38.822, 'lon_right': -38.802 },
     'tmut': { 'lat_top': TMUT_CENTER_LAT + BUFFER_GPS, 'lat_bottom': TMUT_CENTER_LAT - BUFFER_GPS, 'lon_left': TMUT_CENTER_LON - BUFFER_GPS, 'lon_right': TMUT_CENTER_LON + BUFFER_GPS }
@@ -64,68 +63,43 @@ def critical_points_route():
     chart_data = analysis.get_top_problem_locations(df_filtered)
     return jsonify(chart_data)
 
-# --- ENDPOINT DE EXPORTAÇÃO (ATUALIZADO) ---
+@app.route('/api/kpis', methods=['GET'])
+def kpis_route():
+    map_name = request.args.get('map', 'patio')
+    start_date = request.args.get('start_date', None)
+    end_date = request.args.get('end_date', None)
+    ssid_filter = request.args.get('ssid_filter', 'main_network')
+    df_filtered = get_filtered_data(map_name, start_date, end_date, ssid_filter)
+    kpi_data = analysis.calculate_kpis(df_filtered)
+    return jsonify(kpi_data)
+
 @app.route('/api/export', methods=['GET'])
 def export_excel_route():
     start_date = request.args.get('start_date', None)
     end_date = request.args.get('end_date', None)
-
-    if not start_date or not end_date:
-        return "Erro: As datas de início e fim são obrigatórias.", 400
-
+    if not start_date or not end_date: return "Erro: As datas de início e fim são obrigatórias.", 400
     df = get_filtered_data(start_date=start_date, end_date=end_date)
-    if df.empty:
-        return "Nenhum dado encontrado para o período selecionado.", 404
-
-    # --- NOVO: Função para determinar a área ---
+    if df.empty: return "Nenhum dado encontrado para o período selecionado.", 404
     def assign_area(row):
         lat, lon = row['latitude'], row['longitude']
-        patio = MAPS_CONFIG['patio']
-        tmut = MAPS_CONFIG['tmut']
-        if (patio['lat_bottom'] <= lat <= patio['lat_top']) and (patio['lon_left'] <= lon <= patio['lon_right']):
-            return 'Pátio'
-        if (tmut['lat_bottom'] <= lat <= tmut['lat_top']) and (tmut['lon_left'] <= lon <= tmut['lon_right']):
-            return 'TMUT'
+        patio, tmut = MAPS_CONFIG['patio'], MAPS_CONFIG['tmut']
+        if (patio['lat_bottom'] <= lat <= patio['lat_top']) and (patio['lon_left'] <= lon <= patio['lon_right']): return 'Pátio'
+        if (tmut['lat_bottom'] <= lat <= tmut['lat_top']) and (tmut['lon_left'] <= lon <= tmut['lon_right']): return 'TMUT'
         return 'Fora da Área'
-        
     df['Área'] = df.apply(assign_area, axis=1)
     df['Data'] = df['timestamp'].dt.strftime('%d/%m/%Y')
     df['Hora'] = df['timestamp'].dt.strftime('%H:%M:%S')
-
-    column_mapping = {
-        'tablet_android_id': 'Tablet (Android ID)',
-        'signal_dbm': 'Sinal de Rede (dBm)',
-        'current_ssid': 'Rede Wi-Fi Conectada',
-        'packet_loss_percent': 'Perda de Pacotes (%)',
-        'latitude': 'Latitude',
-        'longitude': 'Longitude'
-    }
+    column_mapping = { 'tablet_android_id': 'Tablet (Android ID)', 'signal_dbm': 'Sinal de Rede (dBm)', 'current_ssid': 'Rede Wi-Fi Conectada', 'packet_loss_percent': 'Perda de Pacotes (%)', 'latitude': 'Latitude', 'longitude': 'Longitude' }
     df_renamed = df.rename(columns=column_mapping)
-    
-    final_column_order = [
-        'Tablet (Android ID)',
-        'Data',
-        'Hora',
-        'Área', # Coluna adicionada
-        'Sinal de Rede (dBm)',
-        'Rede Wi-Fi Conectada',
-        'Perda de Pacotes (%)',
-        'Latitude',
-        'Longitude'
-    ]
+    final_column_order = [ 'Tablet (Android ID)', 'Data', 'Hora', 'Área', 'Sinal de Rede (dBm)', 'Rede Wi-Fi Conectada', 'Perda de Pacotes (%)', 'Latitude', 'Longitude' ]
     df_final = df_renamed[final_column_order]
-
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         for date_str, daily_data in df_final.groupby('Data'):
             sheet_name_date = pd.to_datetime(date_str, format='%d/%m/%Y')
             sheet_name = sheet_name_date.strftime('%d-%m-%Y')
-            
-            # Ordena por Área, Rede e Hora para melhor visualização
             sorted_daily_data = daily_data.sort_values(by=['Área', 'Rede Wi-Fi Conectada', 'Hora'])
-            
             sorted_daily_data.to_excel(writer, sheet_name=sheet_name, index=False)
-            
             worksheet = writer.sheets[sheet_name]
             for column in worksheet.columns:
                 max_length = 0
@@ -134,21 +108,12 @@ def export_excel_route():
                 max_length = header_length
                 for cell in column:
                     try:
-                        if len(str(cell.value)) > max_length:
-                            max_length = len(str(cell.value))
-                    except:
-                        pass
+                        if len(str(cell.value)) > max_length: max_length = len(str(cell.value))
+                    except: pass
                 adjusted_width = (max_length + 2)
                 worksheet.column_dimensions[column_letter].width = adjusted_width
-
     output.seek(0)
-    
-    return send_file(
-        output,
-        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        as_attachment=True,
-        download_name=f'Relatorio_WiFi_{start_date}_a_{end_date}.xlsx'
-    )
+    return send_file( output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', as_attachment=True, download_name=f'Relatorio_WiFi_{start_date}_a_{end_date}.xlsx' )
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
