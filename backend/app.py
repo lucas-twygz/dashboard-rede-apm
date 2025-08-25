@@ -77,11 +77,21 @@ def export_excel_route():
     if df.empty:
         return "Nenhum dado encontrado para o período selecionado.", 404
 
-    # --- NOVO: Separa Data e Hora ---
+    # --- NOVO: Função para determinar a área ---
+    def assign_area(row):
+        lat, lon = row['latitude'], row['longitude']
+        patio = MAPS_CONFIG['patio']
+        tmut = MAPS_CONFIG['tmut']
+        if (patio['lat_bottom'] <= lat <= patio['lat_top']) and (patio['lon_left'] <= lon <= patio['lon_right']):
+            return 'Pátio'
+        if (tmut['lat_bottom'] <= lat <= tmut['lat_top']) and (tmut['lon_left'] <= lon <= tmut['lon_right']):
+            return 'TMUT'
+        return 'Fora da Área'
+        
+    df['Área'] = df.apply(assign_area, axis=1)
     df['Data'] = df['timestamp'].dt.strftime('%d/%m/%Y')
     df['Hora'] = df['timestamp'].dt.strftime('%H:%M:%S')
 
-    # Dicionário de renomeação (não inclui mais o timestamp)
     column_mapping = {
         'tablet_android_id': 'Tablet (Android ID)',
         'signal_dbm': 'Sinal de Rede (dBm)',
@@ -92,11 +102,11 @@ def export_excel_route():
     }
     df_renamed = df.rename(columns=column_mapping)
     
-    # Define a ordem final das colunas, incluindo as novas colunas de Data e Hora
     final_column_order = [
         'Tablet (Android ID)',
         'Data',
         'Hora',
+        'Área', # Coluna adicionada
         'Sinal de Rede (dBm)',
         'Rede Wi-Fi Conectada',
         'Perda de Pacotes (%)',
@@ -107,17 +117,15 @@ def export_excel_route():
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        # Usa a coluna 'Data' para agrupar e criar as abas
         for date_str, daily_data in df_final.groupby('Data'):
-            # Converte a string da data para um objeto de data para formatar o nome da aba
             sheet_name_date = pd.to_datetime(date_str, format='%d/%m/%Y')
             sheet_name = sheet_name_date.strftime('%d-%m-%Y')
             
-            sorted_daily_data = daily_data.sort_values(by=['Rede Wi-Fi Conectada', 'Hora'])
+            # Ordena por Área, Rede e Hora para melhor visualização
+            sorted_daily_data = daily_data.sort_values(by=['Área', 'Rede Wi-Fi Conectada', 'Hora'])
             
             sorted_daily_data.to_excel(writer, sheet_name=sheet_name, index=False)
             
-            # Auto-ajuste das colunas
             worksheet = writer.sheets[sheet_name]
             for column in worksheet.columns:
                 max_length = 0
