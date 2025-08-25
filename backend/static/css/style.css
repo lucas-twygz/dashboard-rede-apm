@@ -43,7 +43,7 @@ h1 {
     align-items: center;
     margin-bottom: 30px;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 20px;
 }
 
 .date-filters {
@@ -441,4 +441,97 @@ h2.title-all {
 #kpi-worst-tablet:hover {
     color: var(--color-accent); /* Laranja no hover */
     text-decoration: underline;
+}
+
+/* --- ESTILO PARA O CONTROLES (ATUALIZADO) --- */
+.controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha se não houver espaço */
+    gap: 15px;
+}
+
+/* --- ESTILOS PARA O FILTRO DE DISPOSITIVO --- */
+.device-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.device-filter input[type="text"] {
+    padding: 8px 12px;
+    font-size: 1em;
+    border: 1px solid var(--color-border);
+    border-radius: 5px;
+    outline: none;
+    transition: all 0.2s ease-in-out;
+    background-color: var(--color-card-bg);
+    color: var(--color-text);
+    width: 250px; /* Largura do campo */
+}
+
+.device-filter input[type="text"]::placeholder {
+    color: var(--color-text-light);
+    opacity: 0.7;
+}
+
+.device-filter input[type="text"]:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 5px var(--color-accent);
+}
+
+.device-filter button {
+    padding: 8px 15px;
+    font-size: 0.9em;
+    font-weight: bold;
+    cursor: pointer;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-card-bg);
+    color: var(--color-text);
+    border-radius: 5px;
+    transition: all 0.2s ease-in-out;
+}
+
+#btn-search-device {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-active-button-text);
+}
+
+#btn-search-device:hover {
+    opacity: 0.9;
+}
+
+#btn-clear-device:hover {
+    border-color: #ff5252;
+    color: #ff5252;
+}
+
+/* --- ESTILOS PARA INFORMAÇÕES DE FILTRO --- */
+.info-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: flex-start; /* Garante o alinhamento à esquerda */
+}
+
+#map-date-info {
+    font-size: 1em;
+    color: var(--color-text);
+    font-weight: bold;
+}
+
+#filter-status-info {
+    font-size: 0.9em;
+    color: var(--color-accent);
+    font-weight: bold;
+}
+
+.filter-actions-container {
+    display: flex;
+    align-items: center;
+    gap: 20px; /* Espaçamento entre o filtro de device e o de data */
+    flex-wrap: wrap; /* Permite quebrar a linha em telas menores */
 }

@@ -108,7 +108,7 @@ def get_top_problem_locations(df):
     final_top_10.rename(columns={'critical': 'critical_count', 'attention': 'attention_count'}, inplace=True)
     return final_top_10.to_dict(orient='records')
 
-# --- NOVA FUNÇÃO PARA CALCULAR KPIs ---
+# --- FUNÇÃO DE KPIs (CORRIGIDA) ---
 def calculate_kpis(df):
     """Calcula os KPIs de alto nível a partir de um DataFrame."""
     if df.empty:
@@ -130,11 +130,14 @@ def calculate_kpis(df):
     disconnections = df_copy[df_copy['current_ssid'] == 'disconnected'].shape[0]
     
     worst_tablet = 'N/A'
-    critical_points = df_copy[df_copy['status'] == 'critical']
-    if not critical_points.empty:
-        tablet_counts = critical_points['tablet_android_id'].value_counts()
+    # --- LÓGICA CORRIGIDA AQUI ---
+    # Agora considera tanto 'critical' quanto 'attention'
+    problem_points = df_copy[df_copy['status'].isin(['critical', 'attention'])]
+    if not problem_points.empty:
+        tablet_counts = problem_points['tablet_android_id'].value_counts()
         if not tablet_counts.empty:
             worst_tablet = tablet_counts.index[0]
+    # --- FIM DA CORREÇÃO ---
 
     return {
         'total_measurements': total_measurements,

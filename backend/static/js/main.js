@@ -12,9 +12,7 @@ function showCopyFeedback(text) {
     setTimeout(() => { feedbackEl.remove(); }, 2500);
 }
 
-// --- NOVA FUNÇÃO DE CÓPIA ROBUSTA COM FALLBACK ---
 async function copyTextToClipboard(text, successMessage) {
-    // Tenta usar a API moderna primeiro (requer HTTPS ou localhost)
     if (navigator.clipboard && window.isSecureContext) {
         try {
             await navigator.clipboard.writeText(text);
@@ -24,11 +22,9 @@ async function copyTextToClipboard(text, successMessage) {
             console.error('Falha ao copiar com a API moderna:', err);
         }
     }
-
-    // Fallback para o método antigo (funciona em HTTP)
     const textArea = document.createElement('textarea');
     textArea.value = text;
-    textArea.style.position = 'fixed'; // Previne rolagem
+    textArea.style.position = 'fixed';
     textArea.style.left = '-9999px';
     document.body.appendChild(textArea);
     textArea.focus();
@@ -42,7 +38,6 @@ async function copyTextToClipboard(text, successMessage) {
     }
     document.body.removeChild(textArea);
 }
-
 
 document.addEventListener('DOMContentLoaded', () => {
     const btnPatio = document.getElementById('btn-patio');
@@ -62,6 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const kpiCriticalPercentage = document.getElementById('kpi-critical-percentage');
     const kpiDisconnections = document.getElementById('kpi-disconnections');
     const kpiWorstTablet = document.getElementById('kpi-worst-tablet');
+    const deviceIdInput = document.getElementById('device-id-input');
+    const btnSearchDevice = document.getElementById('btn-search-device');
+    const btnClearDevice = document.getElementById('btn-clear-device');
+    const filterStatusInfo = document.getElementById('filter-status-info');
     
     let currentMap = 'patio';
     let lastValidStartDate = '';
@@ -94,11 +93,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const startDate = dateStartInput.value;
         const endDate = dateEndInput.value;
         const ssidFilter = document.querySelector('input[name="ssid_filter"]:checked').value;
+        const tabletId = deviceIdInput.value.trim();
         const style = filterStyles[ssidFilter];
         if (style) {
             chartTitle.textContent = style.title;
             chartTitle.className = '';
             chartTitle.classList.add(style.className);
+        }
+        if (tabletId) {
+            filterStatusInfo.textContent = `Exibindo dados do tablet: ${tabletId}`;
+        } else {
+            filterStatusInfo.textContent = 'Exibindo dados de todos os tablets';
         }
         if (startDate && endDate && startDate > endDate) {
             mapDateInfo.textContent = 'Erro: Datas inválidas.';
@@ -121,9 +126,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         try {
             await Promise.all([
-                updateKpis(currentMap, startDate, endDate, ssidFilter),
-                updateMap(currentMap, startDate, endDate, ssidFilter),
-                updateDashboard(currentMap, startDate, endDate, ssidFilter)
+                updateKpis(currentMap, startDate, endDate, ssidFilter, tabletId),
+                updateMap(currentMap, startDate, endDate, ssidFilter, tabletId),
+                updateDashboard(currentMap, startDate, endDate, ssidFilter, tabletId)
             ]);
         } catch (error) {
             console.error("Falha ao atualizar o dashboard:", error);
@@ -133,16 +138,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function updateKpis(mapName, startDate, endDate, ssidFilter) {
-        const kpiData = await fetchKpis(mapName, startDate, endDate, ssidFilter);
+    async function updateKpis(mapName, startDate, endDate, ssidFilter, tabletId) {
+        const kpiData = await fetchKpis(mapName, startDate, endDate, ssidFilter, tabletId);
         kpiTotalMeasurements.textContent = kpiData.total_measurements;
         kpiCriticalPercentage.textContent = `${kpiData.critical_percentage}%`;
         kpiDisconnections.textContent = kpiData.disconnections;
         kpiWorstTablet.textContent = kpiData.worst_tablet;
     }
     
-    async function updateDashboard(mapName, startDate, endDate, ssidFilter) {
-        const chartData = await fetchCriticalPoints(mapName, startDate, endDate, ssidFilter);
+    async function updateDashboard(mapName, startDate, endDate, ssidFilter, tabletId) {
+        const chartData = await fetchCriticalPoints(mapName, startDate, endDate, ssidFilter, tabletId);
         if (chartData && chartData.length > 0) {
             chartCanvas.style.display = 'block';
             noChartDataMessage.style.display = 'none';
@@ -153,12 +158,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    async function updateMap(mapName, startDate, endDate, ssidFilter) {
-        const mapData = await fetchMapData(mapName, startDate, endDate, ssidFilter);
+    async function updateMap(mapName, startDate, endDate, ssidFilter, tabletId) {
+        const mapData = await fetchMapData(mapName, startDate, endDate, ssidFilter, tabletId);
         drawMapData(mapData);
     }
     
-    // --- LÓGICA DE CÓPIA ATUALIZADA PARA USAR A NOVA FUNÇÃO ---
     document.body.addEventListener('click', (event) => {
         const copyElement = event.target.closest('.copy-id');
         if (copyElement) {
@@ -199,9 +203,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     dateEndInput.addEventListener('change', () => updateAllViews());
 
+    // --- LÓGICA DE EXPORTAÇÃO (CORRIGIDA) ---
     btnExportExcel.addEventListener('click', async () => {
         const startDate = dateStartInput.value;
         const endDate = dateEndInput.value;
+        const ssidFilter = document.querySelector('input[name="ssid_filter"]:checked').value;
+        const tabletId = deviceIdInput.value.trim();
+
         if (!startDate || !endDate) {
             alert("Por favor, selecione as datas de início e fim para exportar.");
             return;
@@ -210,15 +218,30 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("A data de início não pode ser maior que a data de fim.");
             return;
         }
+
         loadingOverlay.classList.remove('hidden');
+        
         try {
-            const exportUrl = `/api/export?start_date=${startDate}&end_date=${endDate}`;
+            // Constrói a URL com TODOS os parâmetros de filtro
+            const params = new URLSearchParams({
+                start_date: startDate,
+                end_date: endDate,
+                ssid_filter: ssidFilter
+            });
+
+            if (tabletId) {
+                params.append('tablet_id', tabletId);
+            }
+
+            const exportUrl = `/api/export?${params.toString()}`;
             const response = await fetch(exportUrl);
+            
             if (!response.ok) {
                 const errorMessage = await response.text();
                 alert(errorMessage);
                 return;
             }
+
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -244,6 +267,21 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             loadingOverlay.classList.add('hidden');
         }
+    });
+
+    btnSearchDevice.addEventListener('click', () => {
+        updateAllViews();
+    });
+
+    deviceIdInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            updateAllViews();
+        }
+    });
+
+    btnClearDevice.addEventListener('click', () => {
+        deviceIdInput.value = '';
+        updateAllViews();
     });
 
     setDefaultDateToYesterday();

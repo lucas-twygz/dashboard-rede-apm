@@ -38,18 +38,30 @@
         </div>
         
         <div class="controls">
-            <div id="map-date-info"></div>
-            <div class="date-filters">
-                <div class="date-filter-group">
-                    <label for="date-start">Data Início:</label>
-                    <input type="date" id="date-start">
+            <div class="info-container">
+                <div id="map-date-info"></div>
+                <div id="filter-status-info"></div>
+            </div>
+
+            <div class="filter-actions-container">
+                <div class="device-filter">
+                    <input type="text" id="device-id-input" placeholder="Pesquisar por Android ID...">
+                    <button id="btn-search-device">Pesquisar</button>
+                    <button id="btn-clear-device">Limpar</button>
                 </div>
-                <div class="date-filter-group">
-                    <label for="date-end">Data Fim:</label>
-                    <input type="date" id="date-end">
+
+                <div class="date-filters">
+                    <div class="date-filter-group">
+                        <label for="date-start">Data Início:</label>
+                        <input type="date" id="date-start">
+                    </div>
+                    <div class="date-filter-group">
+                        <label for="date-end">Data Fim:</label>
+                        <input type="date" id="date-end">
+                    </div>
+                    <button id="btn-reset-filter" title="Resetar para ontem">Resetar</button>
+                    <button id="btn-export-excel" title="Exportar dados do período para Excel">Exportar Excel</button>
                 </div>
-                <button id="btn-reset-filter" title="Resetar para ontem">Resetar</button>
-                <button id="btn-export-excel" title="Exportar dados do período para Excel">Exportar Excel</button>
             </div>
         </div>
 
