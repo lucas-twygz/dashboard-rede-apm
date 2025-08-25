@@ -372,3 +372,21 @@ h2.title-all {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* --- ESTILO PARA O BOTÃO DE EXPORTAR --- */
+#btn-export-excel {
+    padding: 8px 15px;
+    font-size: 0.9em;
+    font-weight: bold;
+    cursor: pointer;
+    border: 1px solid #4CAF50; /* Verde */
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 5px;
+    transition: all 0.2s ease-in-out;
+}
+
+#btn-export-excel:hover {
+    background-color: #45a049;
+    border-color: #45a049;
+}
