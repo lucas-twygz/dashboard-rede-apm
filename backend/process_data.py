@@ -4,9 +4,7 @@ import os
 
 # --- CONFIGURAÇÃO ---
 DB_PATH = 'db/dashboard.db'
-# Certifique-se de que este caminho está correto para a sua máquina
 CSV_PATH = r'C:\APPS\Check Signal\data\raw_data.csv' 
-# <<< LINHA CORRIGIDA >>>
 STATE_FILE_PATH = 'db/.last_processed_line'
 
 def get_last_processed_line():
@@ -26,7 +24,8 @@ def process_log_data():
     print("Iniciando ETL: Lendo novos dados brutos...")
     
     try:
-        full_df = pd.read_csv(CSV_PATH)
+        # Garante que a coluna current_ssid seja lida como string
+        full_df = pd.read_csv(CSV_PATH, dtype={'current_ssid': str})
         total_lines_in_file = len(full_df)
     except FileNotFoundError:
         print(f"Erro: Arquivo '{CSV_PATH}' não encontrado. Verifique o caminho.")
@@ -42,6 +41,15 @@ def process_log_data():
     print(f"Lendo {len(df)} novas linhas de dados.")
     
     try:
+        # --- NOVO: Tratamento da coluna current_ssid ---
+        if 'current_ssid' not in df.columns:
+            print("Erro de schema: Coluna 'current_ssid' ausente no CSV.")
+            return
+            
+        # Preenche valores nulos ou vazios (NaN) em 'current_ssid' com 'disconnected'
+        df['current_ssid'].fillna('disconnected', inplace=True)
+        df['current_ssid'] = df['current_ssid'].astype(str)
+
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         df['latitude'] = pd.to_numeric(df['latitude'])
         df['longitude'] = pd.to_numeric(df['longitude'])
@@ -56,6 +64,19 @@ def process_log_data():
     conn = None
     try:
         conn = sqlite3.connect(DB_PATH)
+        
+        # --- ATENÇÃO: Primeira execução para adicionar a coluna ---
+        # Descomente o bloco abaixo APENAS NA PRIMEIRA VEZ que executar este script
+        # para adicionar a nova coluna na tabela existente sem precisar recriar o banco.
+        # try:
+        #     conn.execute("ALTER TABLE raw_points ADD COLUMN current_ssid TEXT;")
+        #     print("Coluna 'current_ssid' adicionada à tabela 'raw_points'.")
+        # except sqlite3.OperationalError as e:
+        #     if "duplicate column name" in str(e):
+        #         print("Coluna 'current_ssid' já existe.")
+        #     else:
+        #         raise e
+        
         df.to_sql('raw_points', conn, if_exists='append', index=False)
         print("Dados processados e salvos com sucesso no banco de dados.")
 

@@ -60,26 +60,22 @@ export function drawMapData(data) {
             onEachFeature: (feature, layer) => {
                 const props = feature.properties;
 
-                // CONTEÚDO PARA O POPUP
                 let popupContent = `<div class="popup-content"><b>${tooltipPrefix}</b><br>Medições Agrupadas: ${props.point_count}<hr style="margin: 5px 0;">`;
 
                 if (props.point_details && props.point_details.length > 0) {
                     props.point_details.forEach(detail => {
-                        popupContent += `<div><span class="copy-id" title="Clique para copiar">${detail.id}</span>, ${detail.time}</div>`;
+                        popupContent += `<div><span class="copy-id" title="Clique para copiar">${detail.id}</span>, ${detail.time}<div> Rede: <b>${detail.ssid}</b></div>`;
                     });
                 }
                 popupContent += `</div>`;
                 
-                // TOOLTIP DE VISUALIZAÇÃO RÁPIDA (no hover)
                 layer.bindTooltip(`<b>${tooltipPrefix}</b><br>${props.point_count} medições agrupadas`, {
-                    interactive: false, // Tooltip não é clicável
-                    permanent: false // Sobe e desce com o mouse
+                    interactive: false,
+                    permanent: false
                 });
 
-                // POPUP INTERATIVO (no clique)
                 layer.bindPopup(popupContent, {
                     interactive: true,
-                    // Garante que o popup está na mesma posição sempre
                     autoPan: true
                 });
             }

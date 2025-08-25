@@ -5,18 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Wi-Fi</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
+        <div id="loading-overlay" class="hidden">
+            <div class="spinner"></div>
+        </div>
+
         <h1>Dashboard Check Signal - APM Terminals Pecém</h1>
         
         <div class="controls">
             <div id="map-date-info"></div>
-
             <div class="date-filters">
                 <div class="date-filter-group">
                     <label for="date-start">Data Início:</label>
@@ -38,10 +41,21 @@
                 <button id="btn-tmut">TMUT</button>
                 <button id="btn-reset-map" title="Resetar zoom e posição">Resetar Mapa</button>
             </div>
+
+            <div class="ssid-filters">
+                <input type="radio" name="ssid_filter" value="main_network" id="ssid_main" checked>
+                <label for="ssid_main">Rede Principal</label>
+                <input type="radio" name="ssid_filter" value="disconnected" id="ssid_disconnected">
+                <label for="ssid_disconnected">Desconectados</label>
+                <input type="radio" name="ssid_filter" value="other_networks" id="ssid_other">
+                <label for="ssid_other">Outras Redes</label>
+                <input type="radio" name="ssid_filter" value="all" id="ssid_all">
+                <label for="ssid_all">Todas as Medições</label>
+            </div>
         </div>
 
         <div id="chart-container">
-            <h2>Top 10 Pontos Críticos</h2>
+            <h2 id="chart-title">Top 10 Pontos Críticos</h2>
             <canvas id="critical-points-chart"></canvas>
             <p id="no-chart-data-message" class="hidden">Não foi encontrado nenhum ponto crítico ou de atenção nesse intervalo de tempo</p>
         </div>
@@ -49,6 +63,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script type="module" src="js/main.js"></script>
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

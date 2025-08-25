@@ -20,8 +20,7 @@ def classify_point_status(row):
 
 def create_zones_from_points(points_df, status):
     """
-    Função de clusterização ATUALIZADA para incluir detalhes dos pontos.
-    Agora recebe um DataFrame do Pandas.
+    Função de clusterização ATUALIZADA para incluir detalhes dos pontos, incluindo o SSID.
     """
     if points_df.empty:
         return []
@@ -38,7 +37,7 @@ def create_zones_from_points(points_df, status):
     zones = []
     for label in set(labels):
         cluster_mask = (labels == label)
-        cluster_df = points_df.loc [cluster_mask]
+        cluster_df = points_df.loc[cluster_mask]
         cluster_points_coords = coords[cluster_mask]
         point_count = len(cluster_df)
 
@@ -60,10 +59,11 @@ def create_zones_from_points(points_df, status):
         point_details = []
         for index, row in cluster_df.iterrows():
             timestamp = pd.to_datetime(row['timestamp'])
-            formatted_time = timestamp.strftime('%d/%m/%Y %H:%M:%S')  # Formato DD/MM/YYYY HH:MM:SS
+            formatted_time = timestamp.strftime('%d/%m/%Y %H:%M:%S')
             point_details.append({
                 'id': row['tablet_android_id'],
-                'time': formatted_time
+                'time': formatted_time,
+                'ssid': row['current_ssid'] # --- NOVO: Adiciona o SSID aos detalhes ---
             })
 
         centroid = np.mean(cluster_points_coords, axis=0)
@@ -138,11 +138,3 @@ def get_top_problem_locations(df):
     final_top_10.rename(columns={'critical': 'critical_count', 'attention': 'attention_count'}, inplace=True)
 
     return final_top_10.to_dict(orient='records')
-
-def get_raw_data_by_id(android_id):
-    """Função para buscar dados brutos por android_id (não utilizada na lógica atual do popup)"""
-    df = database.get_all_raw_points()
-    return df[df['tablet_android_id'] == android_id].to_dict(orient='records')
-
-if __name__ == '__main__':
-    app.run(debug=True)
