@@ -1,13 +1,9 @@
 let problemChart = null;
 
-/**
- * Desenha ou atualiza o gráfico de barras empilhadas dos 10 piores locais.
- * @param {Array} apiData - Os dados da API (lista de locais com problemas).
- * @param {Function} onBarClickCallback - Função a ser chamada quando uma barra é clicada.
- */
 export function drawProblemChart(apiData, onBarClickCallback) {
     const ctx = document.getElementById('critical-points-chart').getContext('2d');
 
+    // Garante que a instância anterior do gráfico seja destruída para evitar bugs visuais
     if (problemChart) {
         problemChart.destroy();
     }
@@ -37,7 +33,8 @@ export function drawProblemChart(apiData, onBarClickCallback) {
                 if (elements.length > 0) {
                     const clickedIndex = elements[0].index;
                     const pointData = apiData[clickedIndex];
-                    if (pointData && pointData.lat && pointData.lon && onBarClickCallback) {
+                    // Verifica se o callback existe e se os dados são válidos antes de chamar
+                    if (pointData && typeof pointData.lat !== 'undefined' && typeof pointData.lon !== 'undefined' && onBarClickCallback) {
                         onBarClickCallback(pointData.lat, pointData.lon);
                     }
                 }
@@ -47,7 +44,6 @@ export function drawProblemChart(apiData, onBarClickCallback) {
                     display: true,
                     position: 'top',
                     labels: {
-                        // NOVO: Cor da legenda
                         color: '#f0f0f0',
                         font: {
                             family: 'Lato'
@@ -56,7 +52,7 @@ export function drawProblemChart(apiData, onBarClickCallback) {
                 },
                 tooltip: {
                     callbacks: {
-                        title: (context) => `Local (Grid ID): ${context[0].label}`,
+                        title: (context) => `Local (Cluster ID): ${context[0].label}`,
                         label: (context) => {
                              const item = apiData[context.dataIndex];
                              if (context.dataset.label === 'Críticos') {
@@ -80,7 +76,6 @@ export function drawProblemChart(apiData, onBarClickCallback) {
                     title: {
                         display: true,
                         text: 'Ranking dos Piores Locais',
-                        // NOVO: Cor do título do eixo X
                         color: '#f0f0f0',
                         font: {
                             family: 'Lato',
@@ -88,7 +83,6 @@ export function drawProblemChart(apiData, onBarClickCallback) {
                         }
                     },
                     ticks: {
-                        // NOVO: Cor dos rótulos do eixo X
                         color: '#f0f0f0',
                         font: {
                             family: 'Lato'
@@ -101,7 +95,6 @@ export function drawProblemChart(apiData, onBarClickCallback) {
                     title: {
                         display: true,
                         text: 'Quantidade de Medições',
-                        // NOVO: Cor do título do eixo Y
                         color: '#f0f0f0',
                         font: {
                             family: 'Lato',
@@ -109,7 +102,6 @@ export function drawProblemChart(apiData, onBarClickCallback) {
                         }
                     },
                     ticks: {
-                        // NOVO: Cor dos rótulos do eixo Y
                         color: '#f0f0f0',
                         font: {
                             family: 'Lato'

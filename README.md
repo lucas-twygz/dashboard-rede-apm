@@ -1,100 +1,128 @@
-# Dashboard de Wi-Fi – APM Terminals
+# Dashboard de Análise de Qualidade de Sinal Wi-Fi para APM Terminals
 
-## Objetivo
-Este projeto tem como objetivo criar um **dashboard web** para a equipe de TI da **APM Terminals**, projetado para **monitorar e visualizar a qualidade do sinal Wi-Fi** no terminal.
+## 1\. Visão Geral
 
-O sistema processa logs de conectividade de dispositivos Android, identifica áreas problemáticas através de algoritmos de clusterização e apresenta essas informações em **mapas interativos e gráficos analíticos** que se atualizam automaticamente.
+Este projeto é uma aplicação web de dashboard projetada para monitorar, visualizar e analisar a qualidade do sinal Wi-Fi de dispositivos móveis (tablets) nas áreas operacionais da **APM Terminals Pecém**. A ferramenta permite que a equipe de TI e operações identifique rapidamente zonas com conectividade deficiente, analise o histórico de medições e exporte dados para relatórios detalhados.
 
----
+O dashboard processa dados brutos enviados por tablets, os enriquece, e os apresenta de forma intuitiva através de um mapa interativo, indicadores de performance (KPIs) e gráficos analíticos.
 
-## Arquitetura Geral
-O sistema foi consolidado em uma **aplicação web unificada**, onde o **Backend (Python/Flask)** é responsável por toda a lógica de negócio e também por servir a interface do **Frontend (HTML/CSS/JS)**.
+## 2\. Funcionalidades Principais
 
-- **Backend (Python/Flask)**
-  Responsável pela ingestão de dados, processamento, análises, disponibilização via API REST e por servir a aplicação web para o navegador do usuário.
-- **Frontend (HTML/CSS/JS)**
-  Interface do usuário dinâmica e reativa, renderizada no navegador, que consome a API do próprio backend para exibir mapas, gráficos e filtros interativos.
+  * **Mapa Interativo:** Visualização geoespacial das medições de sinal, agrupadas em clusters coloridos que representam a qualidade da rede (Bom, Atenção, Crítico).
+  * **Dashboard de KPIs:** Cartões com métricas essenciais em tempo real, incluindo o total de medições, a porcentagem de pontos críticos, o número de desconexões e o tablet com o pior desempenho na área.
+  * **Gráfico Analítico:** Um gráfico de barras dinâmico que exibe as 10 áreas (clusters) com a maior concentração de problemas (sinal crítico ou de atenção), permitindo focar no mapa ao clicar em uma barra.
+  * **Filtragem Avançada:** Os usuários podem filtrar os dados por:
+      * **Período:** Selecionando data de início e fim.
+      * **Área do Mapa:** Alternando entre diferentes locais pré-configurados (ex: Pátio, TMUT).
+      * **Tipo de Rede (SSID):** Filtrando por rede principal, desconexões, ou outras redes.
+      * **ID do Dispositivo:** Isolando e analisando os dados de um único tablet.
+  * **Controle de Camadas:** Checkboxes interativos para exibir ou ocultar as camadas de sinal (Bom, Atenção, Crítico) no mapa, atualizando dinamicamente a visualização e os contadores.
+  * **Exportação para Excel:** Funcionalidade para exportar os dados brutos, já filtrados, para um arquivo `.xlsx`, com os dados organizados em abas por dia.
+  * **Atualização Automática:** O dashboard busca por novos dados automaticamente em um intervalo pré-definido, garantindo uma visão sempre atualizada da operação.
 
----
+## 3\. Arquitetura e Tecnologias
 
-## Backend
+O projeto segue uma arquitetura cliente-servidor clássica.
 
-### Estrutura
-- **Fonte de dados:** `raw_data.csv` com logs de conectividade, incluindo o SSID da rede (`current_ssid`).
-- **Banco de dados:** `db/dashboard.db` (SQLite) – tabela `raw_points`.
-- **API e Servidor Web:** Servidor Flask em `app.py`.
+### Backend
 
-### Scripts principais
-- `process_data.py` → ETL que lê o CSV incrementalmente, trata a coluna `current_ssid` e salva no banco.
-- `database.py` → Abstração de acesso ao banco.
-- `analysis.py` → Processamento e análise:
-  - **Classificação**: Categoriza os pontos (`critical`, `attention`, `good`).
-  - **Clusterização**: Algoritmo DBSCAN para agrupar pontos próximos (≤35m).
-  - **Zonas GeoJSON**: Geração de áreas circulares com raio/opacidade dinâmicos.
-  - **Top 10**: Retorna os locais com mais incidentes, respeitando os filtros aplicados.
-- `app.py` → Servidor Flask com os endpoints:
-  - `GET /` → Rota principal que serve a aplicação web (`index.html`).
-  - `GET /api/map_data` → Retorna zonas clusterizadas, aceitando filtros de `map`, `date` e `ssid_filter`.
-  - `GET /api/critical_points` → Retorna dados para o gráfico "Top 10", aceitando os mesmos filtros.
+  * **Linguagem:** Python 3
+  * **Framework:** Flask
+  * **Análise de Dados:** Pandas & NumPy
+  * **Banco de Dados:** SQLite
+  * **Dependências:** Veja `requirements.txt`.
 
----
+### Frontend
 
-## Frontend
+  * **Estrutura:** HTML5
+  * **Estilização:** CSS3 (Dark Mode)
+  * **Interatividade:** JavaScript (ES6 Modules)
+  * **Biblioteca de Mapas:** Leaflet.js
+  * **Biblioteca de Gráficos:** Chart.js
 
-### Estrutura
-- **`templates/index.html`** → Estrutura principal da aplicação, servida pelo Flask.
-- **`static/css/style.css`** → Estilos visuais, incluindo animações de carregamento.
-- **`static/js/`**
-  - `api.js` → Comunicação com a API do backend usando URLs relativas.
-  - `map-view.js` → Lógica do mapa (Leaflet + Mapbox) e exibição de detalhes (incluindo SSID).
-  - `chart-view.js` → Gráficos com Chart.js.
-  - `main.js` → Orquestrador das interações, gerenciador de estado dos filtros e responsável pela lógica de atualização automática (polling).
+## 4\. Estrutura do Projeto
 
-### Bibliotecas usadas
-- [Leaflet.js](https://leafletjs.com/) → Renderização do mapa.
-- [Mapbox](https://www.mapbox.com/) → Tiles de satélite de alta resolução.
-- [Chart.js](https://www.chartjs.org/) → Gráficos analíticos.
+```
+backend/
+├── db/
+│   ├── dashboard.db              # Banco de dados SQLite
+│   └── .last_processed_line      # Arquivo de estado do ETL
+├── static/
+│   ├── css/
+│   │   └── style.css             # Folha de estilos principal
+│   └── js/
+│       ├── main.js               # Orquestrador principal do frontend
+│       ├── api.js                # Funções para chamadas à API
+│       ├── map-view.js           # Lógica de controle e renderização do mapa
+│       └── chart-view.js         # Lógica de controle e renderização do gráfico
+├── templates/
+│   └── index.html                # Template principal da aplicação
+├── __pycache__/                   # Cache do Python
+├── analysis.py                   # Lógica de negócio, classificação e clusterização dos dados
+├── app.py                        # Aplicação principal Flask e rotas da API
+├── database.py                   # Funções de acesso ao banco de dados
+├── process_data.py               # Script ETL para processar CSV e popular o banco
+└── requirements.txt              # Dependências do Python
+```
 
----
+## 5\. Instalação e Execução
 
-## Como Executar
-1. Navegue até a pasta `backend/` no seu terminal.
-2. Inicie o servidor Flask com o comando:
-   ```bash
-   python app.py
-3. Abra um navegador web e acesse o endereço do servidor, por exemplo: http://127.0.0.1:5000.
+### Pré-requisitos
 
-## Funcionalidades Implementadas
+  * Python 3.8 ou superior
+  * pip
 
-* **Visualização Geográfica**: Zonas de qualidade de sinal (boas, atenção, críticas) no mapa. ✅
-* **Filtros Avançados**:
-    * Filtro por área de cobertura (Pátio/TMUT). ✅
-    * Filtro por intervalo de datas. ✅
-    * Filtro dinâmico por tipo de conexão (Rede Principal, Desconectados, Outras Redes). ✅
-* **Análise de Desempenho**: Gráfico "Top 10" piores locais que reflete dinamicamente os filtros aplicados. ✅
-* **Exportação de Dados**: Gera um relatório `.xlsx` que respeita o filtro de datas, com abas separadas por dia e dados agrupados por rede. ✅
-* **Atualização Automática**: O dashboard busca e exibe novos dados a cada 60 segundos, sem necessidade de recarregar a página. ✅
-* **UX**:
-    * Clique no gráfico foca a área correspondente no mapa. ✅
-    * Indicador de carregamento (spinner) durante a busca de dados. ✅
-    * Interface visual coesa: o título do gráfico e o filtro ativo compartilham a mesma identidade de cor. ✅
-    * Detalhes da medição no popup do mapa, incluindo o SSID da rede. ✅
+### Passos
 
----
+1.  **Clone o repositório:**
 
-## Roadmap
+    ```bash
+    git clone <URL_DO_SEU_REPOSITORIO>
+    cd dashboard-backend
+    ```
 
-### Próximos Passos
-* Implementar KPIs em cartões de resumo (ex: % de medições críticas no período).
+2.  **Crie e ative um ambiente virtual (Recomendado):**
 
-### Funcionalidades Futuras
-* Detecção de anomalias (Machine Learning).
-* Adicionar camada de visualização de antenas no mapa.
-* Path tracing de dispositivos para análise de roaming.
-* Relatórios automáticos (PDF) e sistema de alertas.
+    ```bash
+    python -m venv venv
+    # Windows
+    .\venv\Scripts\activate
+    # macOS/Linux
+    source venv/bin/activate
+    ```
 
----
+3.  **Instale as dependências do Python:**
 
-## Licença
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-Projeto interno para APM Terminals. Uso restrito.
+4.  **Execute o servidor Flask:**
+
+    ```bash
+    flask run --host=0.0.0.0
+    ```
+
+    A aplicação estará acessível em `http://127.0.0.1:5000` ou no IP da sua máquina na rede.
+
+## 6\. Processo de ETL (Extração, Transformação e Carga)
+
+O script `process_data.py` é responsável por alimentar o banco de dados.
+
+  * **Fonte:** Ele lê um arquivo `raw_data.csv` localizado em `C:\APPS\Check Signal\data\`.
+  * **Processamento:**
+    1.  Verifica qual foi a última linha processada através do arquivo `db/.last_processed_line` para evitar duplicidade de dados.
+    2.  Lê apenas as novas linhas do CSV.
+    3.  Renomeia e formata as colunas para o padrão do banco de dados.
+    4.  Converte e combina os campos de data e hora em um único campo `timestamp`.
+    5.  Insere os dados tratados na tabela `raw_points` do `dashboard.db`.
+    6.  Atualiza o arquivo `.last_processed_line` com o novo total de linhas lidas.
+  * **Execução:** Este script pode ser executado manualmente ou agendado para rodar periodicamente (ex: via Agendador de Tarefas do Windows).
+
+## 7\. Endpoints da API
+
+  * `GET /`: Renderiza a página principal do dashboard (`index.html`).
+  * `GET /api/map_data`: Retorna os dados geoespaciais clusterizados para a renderização do mapa. Aceita os parâmetros de filtro.
+  * `GET /api/critical_points`: Retorna os dados para o gráfico com as 10 piores áreas. Aceita os parâmetros de filtro.
+  * `GET /api/kpis`: Retorna os dados agregados para os cartões de KPI. Aceita os parâmetros de filtro.
+  * `GET /api/export`: Gera e retorna um arquivo Excel com os dados brutos filtrados.

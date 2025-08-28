@@ -42,14 +42,12 @@
                 <div id="map-date-info"></div>
                 <div id="filter-status-info"></div>
             </div>
-
             <div class="filter-actions-container">
                 <div class="device-filter">
                     <input type="text" id="device-id-input" placeholder="Pesquisar por Android ID...">
                     <button id="btn-search-device">Pesquisar</button>
                     <button id="btn-clear-device">Limpar</button>
                 </div>
-
                 <div class="date-filters">
                     <div class="date-filter-group">
                         <label for="date-start">Data Início:</label>
@@ -65,7 +63,26 @@
             </div>
         </div>
 
-        <div id="map-container"></div>
+        <div class="map-wrapper">
+            <div id="map-container"></div>
+            <div class="layer-controls">
+                <label class="layer-item">
+                    <input type="checkbox" id="toggle-critical-layer" checked>
+                    <span class="layer-checkmark critical-color"></span>
+                    <span class="layer-text">Crítico (<span id="critical-count">0</span>)</span>
+                </label>
+                <label class="layer-item">
+                    <input type="checkbox" id="toggle-attention-layer" checked>
+                    <span class="layer-checkmark attention-color"></span>
+                    <span class="layer-text">Atenção (<span id="attention-count">0</span>)</span>
+                </label>
+                <label class="layer-item">
+                    <input type="checkbox" id="toggle-good-layer" checked>
+                    <span class="layer-checkmark good-color"></span>
+                    <span class="layer-text">Bom (<span id="good-count">0</span>)</span>
+                </label>
+            </div>
+        </div>
         
         <div class="below-map-controls">
             <div class="map-buttons">
@@ -73,16 +90,18 @@
                 <button id="btn-tmut">TMUT</button>
                 <button id="btn-reset-map" title="Resetar zoom e posição">Resetar Mapa</button>
             </div>
-
             <div class="ssid-filters">
-                <input type="radio" name="ssid_filter" value="main_network" id="ssid_main" checked>
+                <input type="radio" name="ssid_filter" value="all" id="ssid_all" checked>
+                <label for="ssid_all">Todas as Medições</label>
+
+                <input type="radio" name="ssid_filter" value="main_network" id="ssid_main">
                 <label for="ssid_main">Rede Principal</label>
+                
                 <input type="radio" name="ssid_filter" value="disconnected" id="ssid_disconnected">
                 <label for="ssid_disconnected">Desconectados</label>
+                
                 <input type="radio" name="ssid_filter" value="other_networks" id="ssid_other">
                 <label for="ssid_other">Outras Redes</label>
-                <input type="radio" name="ssid_filter" value="all" id="ssid_all">
-                <label for="ssid_all">Todas as Medições</label>
             </div>
         </div>
 
