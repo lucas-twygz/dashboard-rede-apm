@@ -5,6 +5,9 @@ let map;
 let goodZonesLayer, attentionZonesLayer, criticalZonesLayer;
 
 // Referências para os elementos de controle de camada
+const toggleGoodLayer = document.getElementById('toggle-good-layer');
+const toggleAttentionLayer = document.getElementById('toggle-attention-layer');
+const toggleCriticalLayer = document.getElementById('toggle-critical-layer');
 const goodCountSpan = document.getElementById('good-count');
 const attentionCountSpan = document.getElementById('attention-count');
 const criticalCountSpan = document.getElementById('critical-count');
@@ -21,22 +24,40 @@ export function initMap() {
         touchZoom: false
     }).setView([patioView.lat, patioView.lng], patioView.zoom);
 
-    const mapboxAccessToken = 'pk.eyJ1IjoibHVjYXNhcG10ZXJtaW5hbHMiLCJhIjoiY21lbXNkd25mMHcxMzJxb2FkdGZ4cDk0eCJ9.LLXruRNJ_E-JjraFHhbalQ';
-    L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/{z}/{x}/{y}?access_token={accessToken}', {
-        attribution: '© Mapbox © OpenStreetMap',
-        maxZoom: 22,
-        accessToken: mapboxAccessToken
+    // --- ALTERAÇÃO PRINCIPAL AQUI ---
+    // A linha de código que contactava o Mapbox foi substituída.
+    // Agora, o Leaflet irá procurar os "azulejos" do mapa na sua pasta local.
+    const tileUrl = "/static/tiles/{z}/{x}/{y}.png";
+
+    L.tileLayer(tileUrl, {
+        attribution: 'APM Terminals Pecém', // Podemos colocar uma atribuição personalizada
+        minZoom: 15, // Nível mínimo de zoom que baixámos
+        maxZoom: 18  // Nível máximo de zoom que baixámos
     }).addTo(map);
+    // --- FIM DA ALTERAÇÃO ---
 
     // Cria painéis para garantir a ordem correta de sobreposição (zIndex)
     map.createPane('goodPane').style.zIndex = 450;
     map.createPane('attentionPane').style.zIndex = 460;
     map.createPane('criticalPane').style.zIndex = 470;
 
-    // Cria as camadas e já as adiciona ao mapa. A visibilidade será controlada pelo main.js
-    goodZonesLayer = L.layerGroup().addTo(map);
-    attentionZonesLayer = L.layerGroup().addTo(map);
-    criticalZonesLayer = L.layerGroup().addTo(map);
+    goodZonesLayer = L.layerGroup();
+    attentionZonesLayer = L.layerGroup();
+    criticalZonesLayer = L.layerGroup();
+
+    if (toggleGoodLayer.checked) map.addLayer(goodZonesLayer);
+    if (toggleAttentionLayer.checked) map.addLayer(attentionZonesLayer);
+    if (toggleCriticalLayer.checked) map.addLayer(criticalZonesLayer);
+
+    toggleGoodLayer.addEventListener('change', () => {
+        map.hasLayer(goodZonesLayer) ? map.removeLayer(goodZonesLayer) : map.addLayer(goodZonesLayer);
+    });
+    toggleAttentionLayer.addEventListener('change', () => {
+        map.hasLayer(attentionZonesLayer) ? map.removeLayer(attentionZonesLayer) : map.addLayer(attentionZonesLayer);
+    });
+    toggleCriticalLayer.addEventListener('change', () => {
+        map.hasLayer(criticalZonesLayer) ? map.removeLayer(criticalZonesLayer) : map.addLayer(criticalZonesLayer);
+    });
 }
 
 export function setMapView(mapName) {
@@ -49,12 +70,10 @@ export function focusOnPoint(lat, lng) {
 }
 
 export function drawMapData(data) {
-    // Limpa as camadas antes de redesenhar
     goodZonesLayer.clearLayers();
     attentionZonesLayer.clearLayers();
     criticalZonesLayer.clearLayers();
 
-    // Atualiza os contadores de ocorrências
     goodCountSpan.textContent = data.good_zones.length;
     attentionCountSpan.textContent = data.attention_zones.length;
     criticalCountSpan.textContent = data.critical_zones.length;
@@ -63,7 +82,7 @@ export function drawMapData(data) {
         if (!zoneData || zoneData.length === 0) return;
 
         L.geoJSON(zoneData, {
-            pane: paneName, // Associa a camada ao painel correto
+            pane: paneName,
             pointToLayer: (feature, latlng) => {
                 return L.circle(latlng, {
                     radius: feature.properties.radius,
@@ -87,7 +106,6 @@ export function drawMapData(data) {
         }).addTo(layerGroup);
     };
 
-    // Desenha cada camada no seu respectivo painel para garantir a ordem
     draw(data.good_zones, { color: 'lime' }, 'Zona de Rede Boa', goodZonesLayer, 'goodPane');
     draw(data.attention_zones, { color: 'yellow' }, 'Zona de Rede Média', attentionZonesLayer, 'attentionPane');
     draw(data.critical_zones, { color: 'red' }, 'Zona de Rede Ruim', criticalZonesLayer, 'criticalPane');

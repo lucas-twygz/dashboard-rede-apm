@@ -4,6 +4,8 @@ import database
 import analysis
 import pandas as pd
 import io
+# Adicionado para o Waitress
+from waitress import serve
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
@@ -156,5 +158,7 @@ def export_excel_route():
         download_name=f'Relatorio_WiFi_{start_date}_a_{end_date}.xlsx'
     )
 
+# --- INICIALIZAÇÃO PARA PRODUÇÃO ---
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True)
+    print("Iniciando servidor de produção na porta 5000...")
+    serve(app, host='0.0.0.0', port=5000)
