@@ -1,4 +1,3 @@
-// Configurações de visualização para as áreas
 const patioView = { center: [-38.811906, -3.549906], zoom: 16, bearing: 52, pitch: 0 };
 const tmutView = { center: [-38.797690, -3.525506], zoom: 15.5, bearing: 50, pitch: 0 };
 
