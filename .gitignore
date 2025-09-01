@@ -8,6 +8,8 @@ __pycache__/
 
 # Distribution / packaging
 tiles/
+.last_processed_line
+dashboard.db
 .vscode
 .Python
 build/
