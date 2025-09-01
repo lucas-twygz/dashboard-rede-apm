@@ -1,10 +1,8 @@
-const patioView = { lat: -3.549806, lng: -38.811906, zoom: 17 };
-const tmutView = { lat: -3.525506, lng: -38.797690, zoom: 16 };
+// Configurações de visualização para as áreas
+const patioView = { center: [-38.811906, -3.549906], zoom: 16, bearing: 52, pitch: 0 };
+const tmutView = { center: [-38.797690, -3.525506], zoom: 15.5, bearing: 50, pitch: 0 };
 
 let map;
-let goodZonesLayer, attentionZonesLayer, criticalZonesLayer;
-
-// Referências para os elementos de controle de camada
 const toggleGoodLayer = document.getElementById('toggle-good-layer');
 const toggleAttentionLayer = document.getElementById('toggle-attention-layer');
 const toggleCriticalLayer = document.getElementById('toggle-critical-layer');
@@ -12,101 +10,132 @@ const goodCountSpan = document.getElementById('good-count');
 const attentionCountSpan = document.getElementById('attention-count');
 const criticalCountSpan = document.getElementById('critical-count');
 
+const layerIds = ['good-zones-layer', 'attention-zones-layer', 'critical-zones-layer'];
+const sourceIds = ['good-zones', 'attention-zones', 'critical-zones'];
+
 export function initMap() {
-    map = L.map('map-container', {
-        dragging: false,
-        zoomControl: false,
-        scrollWheelZoom: false,
+    map = new maplibregl.Map({
+        container: 'map-container',
+        style: {
+            version: 8,
+            sources: {
+                'raster-tiles': {
+                    type: 'raster',
+                    tiles: ['/static/tiles/{z}/{x}/{y}.png'],
+                    tileSize: 256,
+                    attribution: 'APM Terminals Pecém',
+                    maxzoom: 18 
+                }
+            },
+            layers: [{
+                id: 'simple-tiles',
+                type: 'raster',
+                source: 'raster-tiles',
+                minzoom: 15
+            }]
+        },
+        center: patioView.center,
+        zoom: patioView.zoom,
+        bearing: patioView.bearing,
+        pitch: patioView.pitch,
+        dragPan: false,
+        dragRotate: false,
+        scrollZoom: false,
+        touchZoomRotate: false,
         doubleClickZoom: false,
-        boxZoom: false,
-        keyboard: false,
-        tap: false,
-        touchZoom: false
-    }).setView([patioView.lat, patioView.lng], patioView.zoom);
-
-    // --- ALTERAÇÃO PRINCIPAL AQUI ---
-    // A linha de código que contactava o Mapbox foi substituída.
-    // Agora, o Leaflet irá procurar os "azulejos" do mapa na sua pasta local.
-    const tileUrl = "/static/tiles/{z}/{x}/{y}.png";
-
-    L.tileLayer(tileUrl, {
-        attribution: 'APM Terminals Pecém', // Podemos colocar uma atribuição personalizada
-        minZoom: 15, // Nível mínimo de zoom que baixámos
-        maxZoom: 18  // Nível máximo de zoom que baixámos
-    }).addTo(map);
-    // --- FIM DA ALTERAÇÃO ---
-
-    // Cria painéis para garantir a ordem correta de sobreposição (zIndex)
-    map.createPane('goodPane').style.zIndex = 450;
-    map.createPane('attentionPane').style.zIndex = 460;
-    map.createPane('criticalPane').style.zIndex = 470;
-
-    goodZonesLayer = L.layerGroup();
-    attentionZonesLayer = L.layerGroup();
-    criticalZonesLayer = L.layerGroup();
-
-    if (toggleGoodLayer.checked) map.addLayer(goodZonesLayer);
-    if (toggleAttentionLayer.checked) map.addLayer(attentionZonesLayer);
-    if (toggleCriticalLayer.checked) map.addLayer(criticalZonesLayer);
-
-    toggleGoodLayer.addEventListener('change', () => {
-        map.hasLayer(goodZonesLayer) ? map.removeLayer(goodZonesLayer) : map.addLayer(goodZonesLayer);
+        attributionControl: false
     });
-    toggleAttentionLayer.addEventListener('change', () => {
-        map.hasLayer(attentionZonesLayer) ? map.removeLayer(attentionZonesLayer) : map.addLayer(attentionZonesLayer);
-    });
-    toggleCriticalLayer.addEventListener('change', () => {
-        map.hasLayer(criticalZonesLayer) ? map.removeLayer(criticalZonesLayer) : map.addLayer(criticalZonesLayer);
-    });
+
+    toggleGoodLayer.addEventListener('change', () => toggleLayerVisibility('good-zones-layer', toggleGoodLayer.checked));
+    toggleAttentionLayer.addEventListener('change', () => toggleLayerVisibility('attention-zones-layer', toggleAttentionLayer.checked));
+    toggleCriticalLayer.addEventListener('change', () => toggleLayerVisibility('critical-zones-layer', toggleCriticalLayer.checked));
+}
+
+function toggleLayerVisibility(layerId, isVisible) {
+    if (map.getLayer(layerId)) {
+        map.setLayoutProperty(layerId, 'visibility', isVisible ? 'visible' : 'none');
+    }
 }
 
 export function setMapView(mapName) {
     const view = mapName === 'patio' ? patioView : tmutView;
-    map.setView([view.lat, view.lng], view.zoom);
+    map.jumpTo({ ...view });
 }
 
 export function focusOnPoint(lat, lng) {
-    map.setView([lat, lng], 18);
+    map.flyTo({
+        center: [lng, lat],
+        zoom: 18,
+        bearing: map.getBearing(),
+        duration: 1500,
+        essential: true
+    });
 }
 
 export function drawMapData(data) {
-    goodZonesLayer.clearLayers();
-    attentionZonesLayer.clearLayers();
-    criticalZonesLayer.clearLayers();
+    return new Promise(resolve => {
+        goodCountSpan.textContent = data.good_zones.length;
+        attentionCountSpan.textContent = data.attention_zones.length;
+        criticalCountSpan.textContent = data.critical_zones.length;
 
-    goodCountSpan.textContent = data.good_zones.length;
-    attentionCountSpan.textContent = data.attention_zones.length;
-    criticalCountSpan.textContent = data.critical_zones.length;
+        const prepareData = (zones) => ({
+            type: 'FeatureCollection',
+            features: zones.map(z => ({...z, properties: {...z.properties, point_details: JSON.stringify(z.properties.point_details)}}))
+        });
 
-    const draw = (zoneData, defaultStyle, tooltipPrefix, layerGroup, paneName) => {
-        if (!zoneData || zoneData.length === 0) return;
+        const render = () => {
+            for (let i = 0; i < layerIds.length; i++) {
+                if (map.getLayer(layerIds[i])) map.removeLayer(layerIds[i]);
+                if (map.getSource(sourceIds[i])) map.removeSource(sourceIds[i]);
+            }
+            
+            addSourceAndLayer('good-zones', 'good-zones-layer', prepareData(data.good_zones), 'lime');
+            addSourceAndLayer('attention-zones', 'attention-zones-layer', prepareData(data.attention_zones), 'yellow');
+            addSourceAndLayer('critical-zones', 'critical-zones-layer', prepareData(data.critical_zones), 'red');
+            
+            resolve();
+        };
 
-        L.geoJSON(zoneData, {
-            pane: paneName,
-            pointToLayer: (feature, latlng) => {
-                return L.circle(latlng, {
-                    radius: feature.properties.radius,
-                    fillColor: defaultStyle.color,
-                    color: defaultStyle.color,
-                    weight: 1,
-                    fillOpacity: feature.properties.opacity
-                });
-            },
-            onEachFeature: (feature, layer) => {
-                let popupContent = `<div class="popup-content"><b>${tooltipPrefix}</b><br>Medições Agrupadas: ${feature.properties.point_count}<hr style="margin: 5px 0;">`;
-                if (feature.properties.point_details) {
-                    feature.properties.point_details.forEach(detail => {
+        const addSourceAndLayer = (sourceId, layerId, geojsonData, color) => {
+            map.addSource(sourceId, { type: 'geojson', data: geojsonData });
+            map.addLayer({
+                id: layerId,
+                type: 'circle',
+                source: sourceId,
+                paint: {
+                    'circle-radius': ['get', 'radius'],
+                    'circle-color': color,
+                    'circle-opacity': ['get', 'opacity'],
+                    'circle-stroke-width': 1,
+                    'circle-stroke-color': color
+                }
+            });
+            
+            const checkbox = document.getElementById(`toggle-${layerId.split('-')[0]}-layer`);
+            if (checkbox) {
+                toggleLayerVisibility(layerId, checkbox.checked);
+            }
+
+            map.on('click', layerId, (e) => {
+                const properties = e.features[0].properties;
+                const details = JSON.parse(properties.point_details);
+                let popupContent = `<div class="popup-content"><b>${properties.status === 'good' ? 'Zona de Rede Boa' : (properties.status === 'attention' ? 'Zona de Rede Média' : 'Zona de Rede Ruim')}</b><br>Medições Agrupadas: ${properties.point_count}<hr style="margin: 5px 0;">`;
+                if (details) {
+                    details.forEach(detail => {
                         popupContent += `<div><span class="copy-id" title="Clique para copiar">${detail.id}</span>, ${detail.time}, <b>${detail.ssid}</b></div>`;
                     });
                 }
                 popupContent += `</div>`;
-                layer.bindTooltip(`<b>${tooltipPrefix}</b><br>${feature.properties.point_count} medições agrupadas`);
-                layer.bindPopup(popupContent);
-            }
-        }).addTo(layerGroup);
-    };
+                new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupContent).addTo(map);
+            });
+            map.on('mouseenter', layerId, () => { map.getCanvas().style.cursor = 'pointer'; });
+            map.on('mouseleave', layerId, () => { map.getCanvas().style.cursor = ''; });
+        };
 
-    draw(data.good_zones, { color: 'lime' }, 'Zona de Rede Boa', goodZonesLayer, 'goodPane');
-    draw(data.attention_zones, { color: 'yellow' }, 'Zona de Rede Média', attentionZonesLayer, 'attentionPane');
-    draw(data.critical_zones, { color: 'red' }, 'Zona de Rede Ruim', criticalZonesLayer, 'criticalPane');
+        if (map.isStyleLoaded() && !map.isMoving()) {
+            render();
+        } else {
+            map.once('idle', render);
+        }
+    });
 }

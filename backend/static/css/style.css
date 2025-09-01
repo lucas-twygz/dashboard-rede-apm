@@ -36,7 +36,6 @@ h1 {
     transition: color 0.3s ease;
 }
 
-/* --- ESTILOS PARA OS CONTROLES SUPERIORES --- */
 .controls {
     display: flex;
     justify-content: space-between;
@@ -116,10 +115,9 @@ h1 {
     border-color: var(--color-border);
 }
 
-/* --- ESTILOS PARA OS CONTROLES ABAIXO DO MAPA --- */
 .below-map-controls {
     display: flex;
-    justify-content: space-between; /* MODIFICADO: Alinha os grupos à esquerda e à direita */
+    justify-content: space-between;
     align-items: center;
     margin-top: 10px;
     margin-bottom: 20px;
@@ -170,8 +168,6 @@ h1 {
     border-color: var(--color-border);
 }
 
-/* --- ESTILOS PARA O CONTEÚDO PRINCIPAL --- */
-
 #map-container {
     height: 600px;
     width: 100%;
@@ -199,8 +195,6 @@ h2 {
     transition: color 0.3s ease;
 }
 
-/* --- ESTILOS ADICIONAIS --- */
-
 .hidden {
     display: none;
 }
@@ -213,13 +207,11 @@ h2 {
     transition: color 0.3s ease;
 }
 
-/* Estilo para a barra de rolagem no popup */
 .popup-content {
     max-height: 200px;
     overflow-y: auto;
 }
 
-/* Estilo para o ID clicável dentro do popup */
 .copy-id {
     cursor: pointer;
     text-decoration: underline;
@@ -232,7 +224,6 @@ h2 {
     color: #ff5e00;
 }
 
-/* Estilo para a mensagem de feedback "ID Copiado!" */
 .copy-feedback {
     position: fixed;
     bottom: 20px;
@@ -255,7 +246,6 @@ h2 {
     100% { opacity: 0; transform: translate(-50%, -10px); }
 }
 
-/* ESTILO PARA O MARCADOR PULSANTE */
 @keyframes pulse {
     0% {
         transform: scale(0.95);
@@ -282,8 +272,6 @@ h2 {
     display: none;
 }
 
-/* --- ESTILOS PARA OS FILTROS DE SSID --- */
-/* --- ESTILOS PARA OS FILTROS DE SSID (CORRIGIDO) --- */
 .ssid-filters {
     display: flex;
     gap: 10px;
@@ -363,7 +351,7 @@ h2.title-all {
     width: 60px;
     height: 60px;
     border: 5px solid var(--color-border);
-    border-top: 5px solid var(--color-accent); /* Laranja */
+    border-top: 5px solid var(--color-accent);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -373,13 +361,12 @@ h2.title-all {
     100% { transform: rotate(360deg); }
 }
 
-/* --- ESTILO PARA O BOTÃO DE EXPORTAR --- */
 #btn-export-excel {
     padding: 8px 15px;
     font-size: 0.9em;
     font-weight: bold;
     cursor: pointer;
-    border: 1px solid #4CAF50; /* Verde */
+    border: 1px solid #4CAF50;
     background-color: #4CAF50;
     color: white;
     border-radius: 5px;
@@ -391,7 +378,6 @@ h2.title-all {
     border-color: #45a049;
 }
 
-/* --- ESTILOS PARA OS CARTÕES DE KPI --- */
 .kpi-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -429,31 +415,28 @@ h2.title-all {
 
 #kpi-critical-percentage,
 #kpi-disconnections {
-    color: #ff5252; /* Destaque para KPIs de alerta */
+    color: #ff5252;
 }
 
-/* --- ESTILO PARA KPI INTERATIVO --- */
 #kpi-worst-tablet {
     cursor: pointer;
     transition: all 0.2s ease-in-out;
 }
 
 #kpi-worst-tablet:hover {
-    color: var(--color-accent); /* Laranja no hover */
+    color: var(--color-accent); 
     text-decoration: underline;
 }
 
-/* --- ESTILO PARA O CONTROLES (ATUALIZADO) --- */
 .controls {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
-    flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha se não houver espaço */
+    flex-wrap: wrap; 
     gap: 15px;
 }
 
-/* --- ESTILOS PARA O FILTRO DE DISPOSITIVO --- */
 .device-filter {
     display: flex;
     align-items: center;
@@ -469,7 +452,7 @@ h2.title-all {
     transition: all 0.2s ease-in-out;
     background-color: var(--color-card-bg);
     color: var(--color-text);
-    width: 250px; /* Largura do campo */
+    width: 250px;
 }
 
 .device-filter input[type="text"]::placeholder {
@@ -509,12 +492,11 @@ h2.title-all {
     color: #ff5252;
 }
 
-/* --- ESTILOS PARA INFORMAÇÕES DE FILTRO --- */
 .info-container {
     display: flex;
     flex-direction: column;
     gap: 5px;
-    align-items: flex-start; /* Garante o alinhamento à esquerda */
+    align-items: flex-start;
 }
 
 #map-date-info {
@@ -532,20 +514,19 @@ h2.title-all {
 .filter-actions-container {
     display: flex;
     align-items: center;
-    gap: 20px; /* Espaçamento entre o filtro de device e o de data */
-    flex-wrap: wrap; /* Permite quebrar a linha em telas menores */
+    gap: 20px;
+    flex-wrap: wrap;
 }
 
-/* --- Estilos para os Controles de Camada --- */
 .layer-controls {
     position: absolute;
-    bottom: 20px; /* Ajuste conforme a sua preferência */
-    right: 20px;  /* Ajuste conforme a sua preferência */
+    bottom: 20px;
+    right: 20px;
     background-color: rgba(30, 30, 30, 0.9);
     padding: 10px 15px;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    z-index: 1000; /* Garante que fique acima do mapa */
+    z-index: 1000;
     font-family: 'Lato', sans-serif;
     color: #f0f0f0;
 }
@@ -563,11 +544,10 @@ h2.title-all {
     align-items: center;
     cursor: pointer;
     font-size: 14px;
-    user-select: none; /* Previne seleção de texto */
+    user-select: none;
 }
 
 .layer-checkbox-container input[type="checkbox"] {
-    /* Esconde o checkbox nativo */
     opacity: 0;
     width: 0;
     height: 0;
@@ -580,30 +560,30 @@ h2.title-all {
 .layer-checkmark {
     height: 18px;
     width: 18px;
-    background-color: #ccc; /* Cor padrão cinza/branco para desativado */
-    border-radius: 50%; /* Faz com que seja um círculo */
+    background-color: #ccc;
+    border-radius: 50%;
     display: inline-block;
     margin-right: 10px;
     position: relative;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2); /* Borda sutil */
-    transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Animação suave */
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2); 
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Cores das camadas */
-.good-color { background-color: rgba(0, 128, 0, 0.5); } /* Verde padrão (OK) */
-.attention-color { background-color: rgba(255, 255, 0, 0.5); } /* Amarelo padrão (MÉDIO) */
-.critical-color { background-color: rgba(255, 0, 0, 0.5); } /* Vermelho padrão (RUIM) */
+
+.good-color { background-color: rgba(0, 128, 0, 0.5); } 
+.attention-color { background-color: rgba(255, 255, 0, 0.5); } 
+.critical-color { background-color: rgba(255, 0, 0, 0.5); } 
 
 
-/* Estado "desabilitado" - ícone branco */
+
 .layer-checkbox-container input[type="checkbox"]:not(:checked) + .layer-checkmark.good-color {
-    background-color: #f0f0f0; /* Branco para OK desabilitado */
+    background-color: #f0f0f0;
 }
 .layer-checkbox-container input[type="checkbox"]:not(:checked) + .layer-checkmark.attention-color {
-    background-color: #f0f0f0; /* Branco para MÉDIO desabilitado */
+    background-color: #f0f0f0;
 }
 .layer-checkbox-container input[type="checkbox"]:not(:checked) + .layer-checkmark.critical-color {
-    background-color: #f0f0f0; /* Branco para RUIM desabilitado */
+    background-color: #f0f0f0;
 }
 
 
@@ -611,18 +591,15 @@ h2.title-all {
     font-weight: bold;
 }
 
-/* Animação de hover */
 .layer-checkbox-container:hover .layer-checkmark {
-    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.5); /* Efeito de borda ao passar o mouse */
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.5); 
 }
 
-/* --- ESTILO PARA O WRAPPER DO MAPA (NOVO) --- */
 .map-wrapper {
-    position: relative; /* Essencial para posicionar os controles de camada */
-    margin-bottom: 10px; /* Espaçamento que antes estava no map-container */
+    position: relative;
+    margin-bottom: 10px; 
 }
 
-/* O map-container agora não precisa mais de margem */
 #map-container {
     height: 600px;
     width: 100%;
@@ -631,7 +608,6 @@ h2.title-all {
     position: relative;
 }
 
-/* --- ESTILOS PARA OS CONTROLES DE CAMADA (NOVO) --- */
 .layer-controls {
     position: absolute;
     right: 10px;
@@ -639,7 +615,7 @@ h2.title-all {
     padding: 10px 15px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    z-index: 1000; /* Garante que fique acima do mapa */
+    z-index: 1000;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -653,7 +629,7 @@ h2.title-all {
 }
 
 .layer-item input[type="checkbox"] {
-    display: none; /* Esconde o checkbox real */
+    display: none;
 }
 
 .layer-checkmark {
@@ -671,12 +647,10 @@ h2.title-all {
     font-size: 0.9em;
 }
 
-/* Cores quando ATIVADO */
 .layer-item input[type="checkbox"]:checked + .layer-checkmark.critical-color { background-color: red; }
 .layer-item input[type="checkbox"]:checked + .layer-checkmark.attention-color { background-color: yellow; }
 .layer-item input[type="checkbox"]:checked + .layer-checkmark.good-color { background-color: lime; }
 
-/* Cor quando DESATIVADO */
 .layer-item input[type="checkbox"]:not(:checked) + .layer-checkmark {
     background-color: transparent;
 }

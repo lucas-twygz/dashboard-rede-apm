@@ -4,7 +4,7 @@ export async function fetchMapData(mapName, startDate, endDate, ssidFilter, tabl
         params.append('start_date', startDate);
         params.append('end_date', endDate);
     }
-    if (tabletId) { // Adiciona o ID do tablet se ele existir
+    if (tabletId) {
         params.append('tablet_id', tabletId);
     }
     const response = await fetch(`/api/map_data?${params.toString()}`);
@@ -18,7 +18,7 @@ export async function fetchCriticalPoints(mapName, startDate, endDate, ssidFilte
         params.append('start_date', startDate);
         params.append('end_date', endDate);
     }
-    if (tabletId) { // Adiciona o ID do tablet se ele existir
+    if (tabletId) { 
         params.append('tablet_id', tabletId);
     }
     const response = await fetch(`/api/critical_points?${params.toString()}`);
@@ -32,7 +32,7 @@ export async function fetchKpis(mapName, startDate, endDate, ssidFilter, tabletI
         params.append('start_date', startDate);
         params.append('end_date', endDate);
     }
-    if (tabletId) { // Adiciona o ID do tablet se ele existir
+    if (tabletId) {
         params.append('tablet_id', tabletId);
     }
     const response = await fetch(`/api/kpis?${params.toString()}`);

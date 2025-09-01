@@ -3,7 +3,6 @@ let problemChart = null;
 export function drawProblemChart(apiData, onBarClickCallback) {
     const ctx = document.getElementById('critical-points-chart').getContext('2d');
 
-    // Garante que a instância anterior do gráfico seja destruída para evitar bugs visuais
     if (problemChart) {
         problemChart.destroy();
     }
@@ -33,7 +32,6 @@ export function drawProblemChart(apiData, onBarClickCallback) {
                 if (elements.length > 0) {
                     const clickedIndex = elements[0].index;
                     const pointData = apiData[clickedIndex];
-                    // Verifica se o callback existe e se os dados são válidos antes de chamar
                     if (pointData && typeof pointData.lat !== 'undefined' && typeof pointData.lon !== 'undefined' && onBarClickCallback) {
                         onBarClickCallback(pointData.lat, pointData.lon);
                     }

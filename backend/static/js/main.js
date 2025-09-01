@@ -4,6 +4,9 @@ import { drawProblemChart } from './chart-view.js';
 
 const AUTO_REFRESH_INTERVAL = 60000;
 
+let cachedMapData = null;
+let cachedChartData = null;
+
 function showCopyFeedback(text) {
     const feedbackEl = document.createElement('div');
     feedbackEl.className = 'copy-feedback';
@@ -19,14 +22,12 @@ async function copyTextToClipboard(text, successMessage) {
             showCopyFeedback(successMessage);
             return;
         } catch (err) {
-            console.error('Falha ao copiar com a API moderna, tentando fallback:', err);
+            console.error('Falha ao copiar com a API moderna:', err);
         }
     }
-
     const textArea = document.createElement('textarea');
     textArea.value = text;
     textArea.style.position = 'fixed';
-    textArea.style.top = '-9999px';
     textArea.style.left = '-9999px';
     document.body.appendChild(textArea);
     textArea.focus();
@@ -44,7 +45,6 @@ async function copyTextToClipboard(text, successMessage) {
     }
     document.body.removeChild(textArea);
 }
-
 
 document.addEventListener('DOMContentLoaded', () => {
     const btnPatio = document.getElementById('btn-patio');
@@ -75,16 +75,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentMap = 'patio';
     let lastValidStartDate = '';
     let lastValidEndDate = '';
-    let cachedMapData = null;
-    let cachedChartData = null;
 
     initMap();
 
     const filterStyles = {
-        'main_network': { title: 'Áreas Críticas - Rede Principal', className: 'title-main-network' },
-        'disconnected': { title: 'Áreas Críticas - Desconectados', className: 'title-disconnected' },
-        'other_networks': { title: 'Áreas Críticas - Outras Redes', className: 'title-other-networks' },
-        'all': { title: 'Áreas Críticas - Todas as Medições', className: 'title-all' }
+        'all': { title: 'Top 10 Pontos Críticos - Todas as Medições', className: 'title-all' },
+        'main_network': { title: 'Top 10 Pontos Críticos - Rede Principal', className: 'title-main-network' },
+        'disconnected': { title: 'Top 10 Pontos Críticos - Desconectados', className: 'title-disconnected' },
+        'other_networks': { title: 'Top 10 Pontos Críticos - Outras Redes', className: 'title-other-networks' }
     };
 
     function setDefaultDateToYesterday() {
@@ -136,12 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateVisualizationsFromCache() {
         if (!cachedMapData || !cachedChartData) return;
 
-        const filteredMapData = {
-            good_zones: toggleGoodLayer.checked ? cachedMapData.good_zones : [],
-            attention_zones: toggleAttentionLayer.checked ? cachedMapData.attention_zones : [],
-            critical_zones: toggleCriticalLayer.checked ? cachedMapData.critical_zones : []
-        };
-        drawMapData(filteredMapData);
+        drawMapData(cachedMapData);
 
         let filteredChartData = cachedChartData;
         if (!toggleCriticalLayer.checked) {
@@ -216,7 +209,67 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSearchDevice.addEventListener('click', () => updateAllViews());
     deviceIdInput.addEventListener('keypress', (event) => { if (event.key === 'Enter') updateAllViews(); });
     btnClearDevice.addEventListener('click', () => { deviceIdInput.value = ''; updateAllViews(); });
-    btnExportExcel.addEventListener('click', async () => { /* ... código de exportação ... */ });
+    btnExportExcel.addEventListener('click', async () => {
+        const startDate = dateStartInput.value;
+        const endDate = dateEndInput.value;
+        const ssidFilter = document.querySelector('input[name="ssid_filter"]:checked').value;
+        const tabletId = deviceIdInput.value.trim();
+
+        if (!startDate || !endDate) {
+            alert("Por favor, selecione as datas de início e fim para exportar.");
+            return;
+        }
+        if (startDate > endDate) {
+            alert("A data de início não pode ser maior que a data de fim.");
+            return;
+        }
+
+        loadingOverlay.classList.remove('hidden');
+        
+        try {
+            const params = new URLSearchParams({
+                start_date: startDate,
+                end_date: endDate,
+                ssid_filter: ssidFilter
+            });
+            if (tabletId) {
+                params.append('tablet_id', tabletId);
+            }
+            const exportUrl = `/api/export?${params.toString()}`;
+            const response = await fetch(exportUrl);
+            
+            if (!response.ok) {
+                const errorMessage = await response.text();
+                alert(errorMessage);
+                return;
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            const disposition = response.headers.get('Content-Disposition');
+            let filename = `Relatorio_WiFi_${startDate}_a_${endDate}.xlsx`;
+            if (disposition && disposition.indexOf('attachment') !== -1) {
+                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                const matches = filenameRegex.exec(disdisposition);
+                if (matches != null && matches[1]) {
+                    filename = matches[1].replace(/['"]/g, '');
+                }
+            }
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        } catch (error) {
+            console.error('Erro ao exportar arquivo:', error);
+            alert('Ocorreu um erro inesperado ao tentar exportar o arquivo.');
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    });
 
     setDefaultDateToYesterday();
     updateAllViews();

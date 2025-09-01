@@ -16,7 +16,7 @@ LAT_MAX = -3.520
 LON_MIN = -38.825
 LON_MAX = -38.792
 
-ZOOM_LEVELS = range(15, 19) 
+ZOOM_LEVELS = range(15, 20) 
 
 MAP_STYLE = "satellite-v9"
 

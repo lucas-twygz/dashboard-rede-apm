@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Wi-Fi</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/leaflet.css') }}">
+    
+    <link href="{{ url_for('static', filename='css/maplibre-gl.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
@@ -93,13 +95,10 @@
             <div class="ssid-filters">
                 <input type="radio" name="ssid_filter" value="all" id="ssid_all" checked>
                 <label for="ssid_all">Todas as Medições</label>
-
                 <input type="radio" name="ssid_filter" value="main_network" id="ssid_main">
                 <label for="ssid_main">Rede Principal</label>
-                
                 <input type="radio" name="ssid_filter" value="disconnected" id="ssid_disconnected">
                 <label for="ssid_disconnected">Desconectados</label>
-                
                 <input type="radio" name="ssid_filter" value="other_networks" id="ssid_other">
                 <label for="ssid_other">Outras Redes</label>
             </div>
@@ -112,7 +111,7 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/maplibre-gl.js') }}"></script>
     <script src="{{ url_for('static', filename='js/chart.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
