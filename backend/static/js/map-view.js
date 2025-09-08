@@ -23,7 +23,7 @@ export function initMap() {
                     tiles: ['/static/tiles/{z}/{x}/{y}.png'],
                     tileSize: 256,
                     attribution: 'APM Terminals Pecém',
-                    maxzoom: 18 
+                    maxzoom: 18
                 }
             },
             layers: [{
@@ -37,9 +37,9 @@ export function initMap() {
         zoom: patioView.zoom,
         bearing: patioView.bearing,
         pitch: patioView.pitch,
-        dragPan: false,
+        dragPan: true,
         dragRotate: false,
-        scrollZoom: false,
+        scrollZoom: true,
         touchZoomRotate: false,
         doubleClickZoom: false,
         attributionControl: false
@@ -87,11 +87,11 @@ export function drawMapData(data) {
                 if (map.getLayer(layerIds[i])) map.removeLayer(layerIds[i]);
                 if (map.getSource(sourceIds[i])) map.removeSource(sourceIds[i]);
             }
-            
-            addSourceAndLayer('good-zones', 'good-zones-layer', prepareData(data.good_zones), 'lime');
-            addSourceAndLayer('attention-zones', 'attention-zones-layer', prepareData(data.attention_zones), 'yellow');
-            addSourceAndLayer('critical-zones', 'critical-zones-layer', prepareData(data.critical_zones), 'red');
-            
+
+        addSourceAndLayer('good-zones', 'good-zones-layer', prepareData(data.good_zones), '#00FF00');      // Verde Lima (bem vibrante)
+        addSourceAndLayer('attention-zones', 'attention-zones-layer', prepareData(data.attention_zones), '#FFC300'); // Amarelo Âmbar/Dourado
+        addSourceAndLayer('critical-zones', 'critical-zones-layer', prepareData(data.critical_zones), '#FF0000');      // Vermelho Puro
+
             resolve();
         };
 
@@ -105,11 +105,11 @@ export function drawMapData(data) {
                     'circle-radius': ['get', 'radius'],
                     'circle-color': color,
                     'circle-opacity': ['get', 'opacity'],
-                    'circle-stroke-width': 1,
+                    'circle-stroke-width': 0,
                     'circle-stroke-color': color
                 }
             });
-            
+
             const checkbox = document.getElementById(`toggle-${layerId.split('-')[0]}-layer`);
             if (checkbox) {
                 toggleLayerVisibility(layerId, checkbox.checked);

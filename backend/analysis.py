@@ -24,17 +24,15 @@ def create_grid_zones(points_df, status):
     for grid_id, group in df.groupby('grid_id'):
         point_count = len(group)
         if status == 'good':
-            radius, opacity = 7, 0.15
+            radius, opacity = 7, 0.3
         else:
-            if point_count == 1: radius = 10
-            elif point_count < 5: radius = 15
-            else: radius = 20
-            opacity = 0.4
+            if point_count == 1: radius = 8
+            opacity = 0.6
             if status == 'attention':
-                base_opacity = 0.5
+                base_opacity = 0.8
                 opacity = np.interp(point_count, [1, 10], [base_opacity, 0.9]) if point_count > 1 else base_opacity
             elif status == 'critical':
-                base_opacity = 0.6
+                base_opacity = 1
                 opacity = np.interp(point_count, [1, 10], [base_opacity, 1.0]) if point_count > 1 else base_opacity
         point_details = []
         for index, row in group.iterrows():
@@ -44,7 +42,7 @@ def create_grid_zones(points_df, status):
         centroid = [group['lng'].mean(), group['lat'].mean()]
         feature = {
             "type": "Feature",
-            "properties": { "status": status, "point_count": point_count, "radius": radius, "opacity": round(opacity, 2), "point_details": point_details },
+            "properties": { "status": status, "point_count": point_count, "opacity": round(opacity, 2), "point_details": point_details },
             "geometry": { "type": "Point", "coordinates": centroid }
         }
         zones.append(feature)
