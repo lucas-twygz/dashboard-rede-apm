@@ -26,9 +26,7 @@ def create_grid_zones(points_df, status):
         if status == 'good':
             radius, opacity = 7, 0.15
         else:
-            if point_count == 1: radius = 10
-            elif point_count < 5: radius = 15
-            else: radius = 20
+            if point_count == 1: radius = 8
             opacity = 0.4
             if status == 'attention':
                 base_opacity = 0.5
@@ -44,7 +42,7 @@ def create_grid_zones(points_df, status):
         centroid = [group['lng'].mean(), group['lat'].mean()]
         feature = {
             "type": "Feature",
-            "properties": { "status": status, "point_count": point_count, "radius": radius, "opacity": round(opacity, 2), "point_details": point_details },
+            "properties": { "status": status, "point_count": point_count, "opacity": round(opacity, 2), "point_details": point_details },
             "geometry": { "type": "Point", "coordinates": centroid }
         }
         zones.append(feature)
