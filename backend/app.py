@@ -4,6 +4,9 @@ import database
 import analysis
 import pandas as pd
 import io
+import json # <-- NOVO: Para manipular o JSON dos dados
+import requests # <-- NOVO: Para fazer a chamada à API da OpenRouter
+
 # Adicionado para o Waitress
 from waitress import serve
 
@@ -47,6 +50,104 @@ def index():
     return render_template('index.html')
 
 # --- ROTAS DA API ---
+
+# <-- NOVO: ENDPOINT PARA ANÁLISE COM IA -->
+@app.route('/api/analyze', methods=['POST'])
+def analyze_data_route():
+    """
+    Recebe os dados do mapa do frontend, consulta a IA da OpenRouter e retorna a análise.
+    """
+    OPENROUTER_API_KEY = "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"
+    
+    request_data = request.json
+    map_data = request_data.get('map_data', {})
+    context = request_data.get('context', {})
+
+    prompt_template = """
+**PERSONA E OBJETIVO:**
+
+Você é um Analista de Redes Sênior, especialista em otimização de Wi-Fi em terminais portuários. Sua missão é analisar os dados de conectividade abaixo e gerar um relatório **extremamente resumido, acionável e com foco construtivo** para a equipe de TI local da APM Terminals em Pecém.
+
+**Adote um tom 100% construtivo e profissional. Encare os dados não como "falhas", mas como OPORTUNIDADES claras de otimização para tornar a rede ainda mais robusta.** Seja direto, técnico e use frases curtas ou bullet points.
+
+**BACKGROUND E CONTEXTO OPERACIONAL:**
+
+* **Ambiente:** Terminal de contêineres onde a estabilidade do Wi-Fi é crucial para a operação.
+* **Sistemas Críticos:** A rede suporta o sistema **Navis N4 (TOS)** nos tablets dos operadores.
+* **Equipe de TI:** O relatório é para **Cleyton (Campo)**, **David (Sistemas/MobiControl)**, e **Wesley (Gerente)**. Suas recomendações devem ser direcionadas a eles.
+
+**FOCO E ADAPTAÇÃO DA ANÁLISE:**
+
+Sua tarefa é analisar os dados de `critical_zones` à luz do `CONTEXTO DA ANÁLISE` fornecido abaixo. **Você deve iniciar sua resposta mencionando este contexto.**
+
+**INSTRUÇÕES DETALHADAS (SEJA BREVE E ADAPTATIVO):**
+
+1.  **Diagnóstico:** Comece declarando o contexto da análise. De seguida, numa única frase, identifique a **principal oportunidade de otimização** revelada pelos dados e o seu potencial impacto positivo na operação.
+2.  **Análise de Causa Raiz:** Usando bullet points, analise os dados para identificar os principais focos de otimização:
+    * **Dispositivo(s) Chave:** Qual tablet (`id`) oferece a maior oportunidade de melhoria através de uma verificação?
+    * **Ponto de Otimização na Rede:** A maior oportunidade está em estabilizar uma rede específica ou em tratar quedas totais (`disconnected`)? O que isso sugere?
+    * **Padrão de Horário:** Existe algum período do dia (`time`) onde as otimizações teriam maior impacto?
+3.  **Plano de Ação (Recomendações):** Crie uma lista de ações diretas e específicas, adaptadas ao contexto.
+
+**FORMATO DA RESPOSTA:**
+
+Use o seguinte template em Markdown. Mantenha-o enxuto.
+
+```markdown
+### Diagnóstico
+
+### 💡 Focos de Otimização
+
+### 🚀 Plano de Ação
+```
+
+---
+**CONTEXTO DA ANÁLISE:**
+
+* **Período de Análise:** {periodo}
+* **Dispositivo(s) Analisado(s):** {dispositivo}
+
+**DADOS PARA ANÁLISE:**
+
+```json
+{json_data}
+```
+"""
+    
+    final_prompt = prompt_template.format(
+        periodo=context.get('periodo', 'Não especificado'),
+        dispositivo=context.get('dispositivo', 'Todos os Dispositivos'),
+        json_data=json.dumps(map_data, indent=2)
+    )
+    
+    try:
+        response = requests.post(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "meta-llama/llama-4-scout:free",
+                "messages": [
+                    {"role": "user", "content": final_prompt}
+                ]
+            }
+        )
+        response.raise_for_status()
+        
+        ai_response = response.json()['choices'][0]['message']['content']
+        
+        return jsonify({"analysis": ai_response})
+
+    except requests.exceptions.RequestException as e:
+        print(f"Erro ao contactar a API da OpenRouter: {e}")
+        error_details = str(e)
+        if e.response is not None:
+            error_details = e.response.text
+        return jsonify({"error": "Não foi possível obter a análise da IA.", "details": error_details}), 500
+
+
 @app.route('/api/map_data', methods=['GET'])
 def map_data_route():
     map_name = request.args.get('map', 'patio')
