@@ -110,78 +110,7 @@
             <canvas id="critical-points-chart"></canvas>
             <p id="no-chart-data-message" class="hidden">Não foi encontrado nenhum ponto crítico ou de atenção nesse intervalo de tempo</p>
         </div>
-
-<div style="display: flex; gap: 20px; margin-top: 20px;">
-    
-    <!-- Container do gráfico existente (modificar para flex) -->
-    <div id="chart-container" class="chart-container">
-        <h2 id="chart-title">Top 10 Pontos Críticos</h2>
-        <canvas id="critical-points-chart"></canvas>
-        <p id="no-chart-data-message" class="hidden">Não foi encontrado nenhum ponto crítico ou de atenção nesse intervalo de tempo</p>
     </div>
-
-    <!-- NOVO: Container da análise IA -->
-    <div id="ai-analysis-container" class="ai-analysis-container">
-        <div class="ai-header">
-            <h2>Análise com IA 🧠</h2>
-            <button id="analyze-btn" class="analyze-btn">Analisar Dados Atuais</button>
-        </div>
-        
-        <!-- Spinner de loading -->
-        <div id="ai-spinner" class="spinner-container" style="display: none;">
-            <div class="spinner"></div>
-            <p>A pensar... A IA está a analisar os dados.</p>
-        </div>
-        
-        <!-- Resultado da análise -->
-        <div id="ai-analysis-result" class="ai-analysis-result">
-            <p class="placeholder-text">Clique em "Analisar" para obter insights sobre os dados filtrados no mapa.</p>
-        </div>
-    </div>
-</div>
-</div>
-
-<style>
-/* Ajustar o layout principal para flex horizontal */
-.chart-and-ai-container {
-    display: flex;
-    gap: 20px;
-    margin-top: 20px;
-    align-items: stretch; /* Faz com que tenham a mesma altura */
-}
-
-/* Ajustar larguras se necessário */
-@media (max-width: 1200px) {
-    .chart-and-ai-container {
-        flex-direction: column;
-    }
-    
-    .chart-container, 
-    .ai-analysis-container {
-        flex-basis: 100% !important;
-        margin-left: 0 !important;
-    }
-}
-
-/* Estilo para links dentro da análise */
-.ai-analysis-result a {
-    color: #0056b3;
-    text-decoration: underline;
-}
-
-.ai-analysis-result a:hover {
-    color: #003d82;
-}
-
-/* Estilo para código inline na análise */
-.ai-analysis-result code {
-    background-color: #f5f5f5;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-family: monospace;
-    font-size: 0.85em;
-}
-</style>
 
     <script src="{{ url_for('static', filename='js/maplibre-gl.js') }}"></script>
     <script src="{{ url_for('static', filename='js/chart.js') }}"></script>

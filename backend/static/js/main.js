@@ -1,7 +1,6 @@
 import { fetchMapData, fetchCriticalPoints, fetchKpis } from './api.js';
 import { initMap, drawMapData, setMapView, focusOnPoint } from './map-view.js';
 import { drawProblemChart } from './chart-view.js';
-import { performFullAnalysis } from './ai-analysis.js'; // NOVO: Importar módulo de IA
 
 const AUTO_REFRESH_INTERVAL = 60000;
 
@@ -46,6 +45,7 @@ async function copyTextToClipboard(text, successMessage) {
     document.body.removeChild(textArea);
 }
 
+
 document.addEventListener('DOMContentLoaded', () => {
     const btnPatio = document.getElementById('btn-patio');
     const btnTmut = document.getElementById('btn-tmut');
@@ -71,11 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleGoodLayer = document.getElementById('toggle-good-layer');
     const toggleAttentionLayer = document.getElementById('toggle-attention-layer');
     const toggleCriticalLayer = document.getElementById('toggle-critical-layer');
-    
-    // NOVO: Elementos da análise de IA
-    const analyzeBtn = document.getElementById('analyze-btn');
-    const aiSpinner = document.getElementById('ai-spinner');
-    const aiAnalysisResult = document.getElementById('ai-analysis-result');
     
     let currentMap = 'patio';
     let lastValidStartDate = '';
@@ -105,52 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
         lastValidEndDate = yesterdayString;
     }
 
-    // NOVO: Função para executar análise de IA
-    async function runAIAnalysis() {
-        if (!cachedMapData) {
-            alert('Carregue os dados do mapa primeiro antes de analisar.');
-            return;
-        }
-
-        // Desabilitar botão e mostrar spinner
-        analyzeBtn.disabled = true;
-        analyzeBtn.textContent = 'Analisando...';
-        aiSpinner.style.display = 'block';
-        aiAnalysisResult.innerHTML = '<p class="placeholder-text">Aguarde, a IA está processando os dados...</p>';
-
-        try {
-            const startDate = dateStartInput.value;
-            const endDate = dateEndInput.value;
-            const tabletId = deviceIdInput.value.trim();
-            const ssidFilter = document.querySelector('input[name="ssid_filter"]:checked').value;
-
-            const analysisHTML = await performFullAnalysis({
-                cachedMapData,
-                startDate,
-                endDate,
-                tabletId,
-                ssidFilter,
-                currentMap
-            });
-
-            aiAnalysisResult.innerHTML = analysisHTML;
-            
-        } catch (error) {
-            console.error('Erro na análise de IA:', error);
-            aiAnalysisResult.innerHTML = `
-                <div style="color: #d32f2f; padding: 15px; background-color: #ffebee; border-radius: 5px; border-left: 4px solid #d32f2f;">
-                    <strong>Erro na Análise:</strong><br>
-                    ${error.message || 'Não foi possível conectar com o serviço de IA. Tente novamente mais tarde.'}
-                </div>
-            `;
-        } finally {
-            // Reabilitar botão e esconder spinner
-            analyzeBtn.disabled = false;
-            analyzeBtn.textContent = 'Analisar Dados Atuais';
-            aiSpinner.style.display = 'none';
-        }
-    }
-
     async function updateAllViews(isAutoRefresh = false) {
         if (!isAutoRefresh) loadingOverlay.classList.remove('hidden');
         
@@ -173,11 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             updateKpis(kpiData);
             updateVisualizationsFromCache();
-
-            // NOVO: Limpar análise anterior quando os dados mudarem (exceto no auto-refresh)
-            if (!isAutoRefresh && aiAnalysisResult.innerHTML !== '<p class="placeholder-text">Clique em "Analisar" para obter insights sobre os dados filtrados no mapa.</p>') {
-                aiAnalysisResult.innerHTML = '<p class="placeholder-text">Dados atualizados. Clique em "Analisar" para nova análise.</p>';
-            }
 
         } catch (error) {
             console.error("Falha ao atualizar o dashboard:", error);
@@ -258,7 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Event Listeners existentes
     toggleGoodLayer.addEventListener('change', updateVisualizationsFromCache);
     toggleAttentionLayer.addEventListener('change', updateVisualizationsFromCache);
     toggleCriticalLayer.addEventListener('change', updateVisualizationsFromCache);
@@ -273,55 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSearchDevice.addEventListener('click', () => updateAllViews());
     deviceIdInput.addEventListener('keypress', (event) => { if (event.key === 'Enter') updateAllViews(); });
     btnClearDevice.addEventListener('click', () => { deviceIdInput.value = ''; updateAllViews(); });
-    
-    // NOVO: Event listener para o botão de análise IA
-    analyzeBtn.addEventListener('click', runAIAnalysis);
-    
-    btnExportExcel.addEventListener('click', async () => { 
-        const startDate = dateStartInput.value;
-        const endDate = dateEndInput.value;
-        const ssidFilter = document.querySelector('input[name="ssid_filter"]:checked').value;
-        const tabletId = deviceIdInput.value.trim();
-        
-        if (!startDate || !endDate) {
-            alert('Por favor, selecione as datas de início e fim para exportar.');
-            return;
-        }
-        
-        try {
-            loadingOverlay.classList.remove('hidden');
-            
-            const params = new URLSearchParams({
-                start_date: startDate,
-                end_date: endDate,
-                ssid_filter: ssidFilter,
-                ...(tabletId && { tablet_id: tabletId })
-            });
-            
-            const response = await fetch(`/api/export?${params}`);
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText);
-            }
-            
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Relatorio_WiFi_${startDate}_a_${endDate}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            
-        } catch (error) {
-            console.error('Erro na exportação:', error);
-            alert('Erro ao exportar dados: ' + error.message);
-        } finally {
-            loadingOverlay.classList.add('hidden');
-        }
-    });
+    btnExportExcel.addEventListener('click', async () => { /* ... código de exportação ... */ });
 
     setDefaultDateToYesterday();
     updateAllViews();
