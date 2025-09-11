@@ -9,6 +9,132 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Estilos específicos para a seção de análise IA */
+        .ai-analysis-section {
+            margin-top: 30px;
+            background-color: var(--color-card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px var(--color-shadow);
+        }
+        
+        .ai-analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--color-border);
+            padding-bottom: 15px;
+        }
+        
+        .ai-analysis-header h2 {
+            margin: 0;
+            color: var(--color-accent);
+            font-size: 1.5em;
+        }
+        
+        #analyze-btn {
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            border: 2px solid var(--color-accent);
+            background-color: var(--color-accent);
+            color: var(--color-active-button-text);
+            border-radius: 5px;
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        #analyze-btn:hover:not(:disabled) {
+            background-color: transparent;
+            color: var(--color-accent);
+        }
+        
+        #analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        #ai-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--color-border);
+            border-top: 2px solid var(--color-accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        #ai-analysis-result {
+            min-height: 100px;
+            padding: 20px;
+            background-color: var(--color-primary-bg);
+            border-radius: 5px;
+            border: 1px solid var(--color-border);
+            line-height: 1.6;
+        }
+        
+        #ai-analysis-result h1,
+        #ai-analysis-result h2,
+        #ai-analysis-result h3 {
+            color: var(--color-accent);
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        #ai-analysis-result h1 { font-size: 1.8em; }
+        #ai-analysis-result h2 { font-size: 1.5em; }
+        #ai-analysis-result h3 { font-size: 1.2em; }
+        
+        #ai-analysis-result ul,
+        #ai-analysis-result ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        
+        #ai-analysis-result li {
+            margin: 5px 0;
+        }
+        
+        #ai-analysis-result strong {
+            color: var(--color-text);
+        }
+        
+        #ai-analysis-result p {
+            margin: 10px 0;
+        }
+        
+        .placeholder-text {
+            color: var(--color-text-light);
+            font-style: italic;
+            text-align: center;
+            margin: 40px 0;
+        }
+        
+        .error-container {
+            color: #d32f2f !important;
+            background-color: #ffebee !important;
+            border: 1px solid #d32f2f !important;
+            border-left: 4px solid #d32f2f !important;
+            padding: 15px !important;
+            border-radius: 5px !important;
+            margin: 10px 0 !important;
+        }
+        
+        .error-container h3 {
+            color: #d32f2f !important;
+            margin-top: 0 !important;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -102,6 +228,20 @@
                 
                 <input type="radio" name="ssid_filter" value="other_networks" id="ssid_other">
                 <label for="ssid_other">Outras Redes</label>
+            </div>
+        </div>
+
+        <!-- NOVA SEÇÃO: Análise de IA -->
+        <div class="ai-analysis-section">
+            <div class="ai-analysis-header">
+                <h2>Análise com I.A</h2>
+                <button id="analyze-btn">
+                    <div id="ai-spinner"></div>
+                    <span id="ai-btn-text">Analisar Dados Atuais</span>
+                </button>
+            </div>
+            <div id="ai-analysis-result">
+                <p class="placeholder-text">Clique em "Analisar" para obter insights sobre os dados filtrados no mapa.</p>
             </div>
         </div>
 

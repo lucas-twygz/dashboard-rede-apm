@@ -688,3 +688,29 @@ h2.title-all {
 .layer-item:hover .layer-checkmark {
     transform: scale(1.1);
 }
+
+.ai-analysis-result a {
+    color: #0056b3;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+    transition: text-decoration 0.2s ease-in-out;
+}
+
+.ai-analysis-result a:hover {
+    text-decoration: underline;
+}
+
+.ai-analysis-result .icon {
+    display: inline-block;
+    margin-left: 4px;
+    font-style: normal;
+}
+
+a.focus-location {
+    cursor: pointer;
+    text-decoration: underline;
+    color: var(--color-accent);
+    font-weight: bold;
+    transition: color 0.3s ease
+}
