@@ -38,7 +38,15 @@ def create_grid_zones(points_df, status):
         for index, row in group.iterrows():
             timestamp = pd.to_datetime(row['timestamp'])
             formatted_time = timestamp.strftime('%d/%m/%Y %H:%M:%S')
-            point_details.append({ 'id': row['tablet_android_id'], 'time': formatted_time, 'ssid': row['current_ssid'] })
+            # --- ALTERAÇÃO AQUI ---
+            # Adicionamos lat e lon para cada ponto individual.
+            point_details.append({
+                'id': row['tablet_android_id'],
+                'time': formatted_time,
+                'ssid': row['current_ssid'],
+                'lat': row['lat'],
+                'lon': row['lng']
+            })
         centroid = [group['lng'].mean(), group['lat'].mean()]
         feature = {
             "type": "Feature",
@@ -108,22 +116,18 @@ def get_top_problem_locations(df):
         critical_count = cluster_df['critical'].sum()
         attention_count = cluster_df['attention'].sum()
         
-        # --- CORREÇÃO APLICADA AQUI ---
-        # 1. Pega TODOS os pontos originais que pertencem a este cluster
         cluster_points = problem_points[problem_points.set_index(['grid_lat', 'grid_lon']).index.isin(cluster_coords)]
         
-        # 2. Calcula o centroide (média) das coordenadas desses pontos
         avg_lat = cluster_points['latitude'].mean()
         avg_lon = cluster_points['longitude'].mean()
-        # --- FIM DA CORREÇÃO ---
 
         clustered_data.append({
             'grid_id': f'{i+1}',
             'critical_count': int(critical_count),
             'attention_count': int(attention_count),
             'total_problems': int(critical_count + attention_count),
-            'lat': avg_lat, # Usa a latitude média
-            'lon': avg_lon  # Usa a longitude média
+            'lat': avg_lat,
+            'lon': avg_lon
         })
 
     final_top_10 = sorted(clustered_data, key=lambda x: x['total_problems'], reverse=True)[:10]

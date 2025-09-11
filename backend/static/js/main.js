@@ -1,6 +1,7 @@
 import { fetchMapData, fetchCriticalPoints, fetchKpis } from './api.js';
 import { initMap, drawMapData, setMapView, focusOnPoint } from './map-view.js';
 import { drawProblemChart } from './chart-view.js';
+import { performFullAnalysis } from './ai-analysis.js';
 
 const AUTO_REFRESH_INTERVAL = 60000;
 
@@ -45,7 +46,6 @@ async function copyTextToClipboard(text, successMessage) {
     document.body.removeChild(textArea);
 }
 
-
 document.addEventListener('DOMContentLoaded', () => {
     const btnPatio = document.getElementById('btn-patio');
     const btnTmut = document.getElementById('btn-tmut');
@@ -72,9 +72,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleAttentionLayer = document.getElementById('toggle-attention-layer');
     const toggleCriticalLayer = document.getElementById('toggle-critical-layer');
     
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const aiSpinner = document.getElementById('ai-spinner');
+    const aiBtnText = document.getElementById('ai-btn-text');
+    const aiAnalysisResult = document.getElementById('ai-analysis-result');
+    
     let currentMap = 'patio';
-    let lastValidStartDate = '';
-    let lastValidEndDate = '';
     let cachedMapData = null;
     let cachedChartData = null;
 
@@ -96,33 +99,58 @@ document.addEventListener('DOMContentLoaded', () => {
         const yesterdayString = `${year}-${month}-${day}`;
         dateStartInput.value = yesterdayString;
         dateEndInput.value = yesterdayString;
-        lastValidStartDate = yesterdayString;
-        lastValidEndDate = yesterdayString;
+    }
+
+    async function runAIAnalysis() {
+        if (!cachedMapData) {
+            alert('Carregue os dados do mapa primeiro antes de analisar.');
+            return;
+        }
+        const originalBtnText = aiBtnText.textContent;
+        analyzeBtn.disabled = true;
+        aiBtnText.textContent = 'Analisando...';
+        aiSpinner.style.display = 'block';
+        aiAnalysisResult.innerHTML = '<p class="placeholder-text">Aguarde, a IA está processando os dados...</p>';
+        try {
+            const analysisHTML = await performFullAnalysis({
+                cachedMapData,
+                startDate: dateStartInput.value,
+                endDate: dateEndInput.value,
+                tabletId: deviceIdInput.value.trim(),
+                ssidFilter: document.querySelector('input[name="ssid_filter"]:checked').value,
+                currentMap
+            });
+            aiAnalysisResult.innerHTML = analysisHTML;
+        } catch (error) {
+            console.error('Erro na análise de IA:', error);
+            aiAnalysisResult.innerHTML = `<div style="color: #d32f2f; padding: 15px; background-color: #ffebee; border-radius: 5px; border-left: 4px solid #d32f2f;"><strong>Erro na Análise:</strong><br>${error.message || 'Não foi possível conectar com o serviço de IA. Tente novamente mais tarde.'}</div>`;
+        } finally {
+            analyzeBtn.disabled = false;
+            aiBtnText.textContent = originalBtnText;
+            aiSpinner.style.display = 'none';
+        }
     }
 
     async function updateAllViews(isAutoRefresh = false) {
         if (!isAutoRefresh) loadingOverlay.classList.remove('hidden');
-        
         const startDate = dateStartInput.value;
         const endDate = dateEndInput.value;
         const ssidFilter = document.querySelector('input[name="ssid_filter"]:checked').value;
         const tabletId = deviceIdInput.value.trim();
-        
         updateStatusTexts(startDate, endDate, tabletId);
-
         try {
             const [kpiData, mapData, chartData] = await Promise.all([
                 fetchKpis(currentMap, startDate, endDate, ssidFilter, tabletId),
                 fetchMapData(currentMap, startDate, endDate, ssidFilter, tabletId),
                 fetchCriticalPoints(currentMap, startDate, endDate, ssidFilter, tabletId)
             ]);
-
             cachedMapData = mapData;
             cachedChartData = chartData;
-
             updateKpis(kpiData);
             updateVisualizationsFromCache();
-
+            if (!isAutoRefresh && aiAnalysisResult.innerHTML.includes('placeholder-text') === false) {
+                aiAnalysisResult.innerHTML = '<p class="placeholder-text">Dados atualizados. Clique em "Analisar" para nova análise.</p>';
+            }
         } catch (error) {
             console.error("Falha ao atualizar o dashboard:", error);
             mapDateInfo.textContent = 'Erro ao carregar dados. Tente novamente.';
@@ -135,24 +163,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function updateVisualizationsFromCache() {
         if (!cachedMapData || !cachedChartData) return;
-
         const filteredMapData = {
             good_zones: toggleGoodLayer.checked ? cachedMapData.good_zones : [],
             attention_zones: toggleAttentionLayer.checked ? cachedMapData.attention_zones : [],
             critical_zones: toggleCriticalLayer.checked ? cachedMapData.critical_zones : []
         };
         drawMapData(filteredMapData);
-
-        let filteredChartData = cachedChartData;
-        if (!toggleCriticalLayer.checked) {
-            filteredChartData = filteredChartData.map(item => ({ ...item, critical_count: 0 }));
-        }
-        if (!toggleAttentionLayer.checked) {
-            filteredChartData = filteredChartData.map(item => ({ ...item, attention_count: 0 }));
-        }
-        filteredChartData = filteredChartData.map(item => ({ ...item, total_problems: item.critical_count + item.attention_count }))
-            .filter(item => item.total_problems > 0);
-
+        let filteredChartData = cachedChartData.map(item => {
+            const critical_count = toggleCriticalLayer.checked ? item.critical_count : 0;
+            const attention_count = toggleAttentionLayer.checked ? item.attention_count : 0;
+            return { ...item, critical_count, attention_count, total_problems: critical_count + attention_count };
+        }).filter(item => item.total_problems > 0);
         if (filteredChartData.length > 0) {
             chartCanvas.style.display = 'block';
             noChartDataMessage.style.display = 'none';
@@ -200,23 +221,78 @@ document.addEventListener('DOMContentLoaded', () => {
                 copyTextToClipboard(idToCopy, message);
             }
         }
+
+        const focusElement = event.target.closest('.focus-location');
+        if (focusElement) {
+            event.preventDefault(); 
+            const lat = parseFloat(focusElement.dataset.lat);
+            const lon = parseFloat(focusElement.dataset.lon);
+            if (!isNaN(lat) && !isNaN(lon)) {
+                focusOnPoint(lat, lon);
+                const mapContainer = document.getElementById('map-container');
+                if (mapContainer) {
+                    mapContainer.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            } else {
+                console.error('Coordenadas para foco são inválidas:', focusElement.dataset.lat, focusElement.dataset.lon);
+            }
+        }
     });
 
-    toggleGoodLayer.addEventListener('change', updateVisualizationsFromCache);
-    toggleAttentionLayer.addEventListener('change', updateVisualizationsFromCache);
-    toggleCriticalLayer.addEventListener('change', updateVisualizationsFromCache);
-
+    // --- Event Listeners ---
+    [toggleGoodLayer, toggleAttentionLayer, toggleCriticalLayer].forEach(el => el.addEventListener('change', updateVisualizationsFromCache));
     btnPatio.addEventListener('click', () => { currentMap = 'patio'; setMapView(currentMap); updateAllViews(); btnPatio.classList.add('active'); btnTmut.classList.remove('active'); });
     btnTmut.addEventListener('click', () => { currentMap = 'tmut'; setMapView(currentMap); updateAllViews(); btnTmut.classList.add('active'); btnPatio.classList.remove('active'); });
     btnResetFilter.addEventListener('click', () => { setDefaultDateToYesterday(); deviceIdInput.value = ''; updateAllViews(); });
     btnResetMap.addEventListener('click', () => setMapView(currentMap));
     ssidFilterRadios.forEach(radio => radio.addEventListener('change', () => updateAllViews()));
-    dateStartInput.addEventListener('change', () => updateAllViews());
-    dateEndInput.addEventListener('change', () => updateAllViews());
+    
+    // --- LINHA CORRIGIDA ---
+    [dateStartInput, dateEndInput].forEach(el => el.addEventListener('change', () => updateAllViews()));
+    
     btnSearchDevice.addEventListener('click', () => updateAllViews());
     deviceIdInput.addEventListener('keypress', (event) => { if (event.key === 'Enter') updateAllViews(); });
     btnClearDevice.addEventListener('click', () => { deviceIdInput.value = ''; updateAllViews(); });
-    btnExportExcel.addEventListener('click', async () => { /* ... código de exportação ... */ });
+    analyzeBtn.addEventListener('click', runAIAnalysis);
+    
+    btnExportExcel.addEventListener('click', async () => { 
+        const startDate = dateStartInput.value;
+        const endDate = dateEndInput.value;
+        const ssidFilter = document.querySelector('input[name="ssid_filter"]:checked').value;
+        const tabletId = deviceIdInput.value.trim();
+        if (!startDate || !endDate) {
+            alert('Por favor, selecione as datas de início e fim para exportar.');
+            return;
+        }
+        try {
+            loadingOverlay.classList.remove('hidden');
+            const params = new URLSearchParams({
+                start_date: startDate, end_date: endDate, ssid_filter: ssidFilter,
+                ...(tabletId && { tablet_id: tabletId })
+            });
+            const response = await fetch(`/api/export?${params}`);
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Relatorio_WiFi_${startDate}_a_${endDate}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Erro na exportação:', error);
+            alert('Erro ao exportar dados: ' + error.message);
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    });
 
     setDefaultDateToYesterday();
     updateAllViews();
