@@ -49,6 +49,7 @@ async function copyTextToClipboard(text, successMessage) {
 document.addEventListener('DOMContentLoaded', () => {
     const btnPatio = document.getElementById('btn-patio');
     const btnTmut = document.getElementById('btn-tmut');
+    const btnDepot = document.getElementById('btn-depot');
     const btnResetFilter = document.getElementById('btn-reset-filter');
     const btnResetMap = document.getElementById('btn-reset-map');
     const dateStartInput = document.getElementById('date-start');
@@ -244,8 +245,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Event Listeners ---
     [toggleGoodLayer, toggleAttentionLayer, toggleCriticalLayer].forEach(el => el.addEventListener('change', updateVisualizationsFromCache));
-    btnPatio.addEventListener('click', () => { currentMap = 'patio'; setMapView(currentMap); updateAllViews(); btnPatio.classList.add('active'); btnTmut.classList.remove('active'); });
-    btnTmut.addEventListener('click', () => { currentMap = 'tmut'; setMapView(currentMap); updateAllViews(); btnTmut.classList.add('active'); btnPatio.classList.remove('active'); });
+    btnPatio.addEventListener('click', () => { 
+        currentMap = 'patio'; 
+        setMapView(currentMap); 
+        updateAllViews(); 
+        btnPatio.classList.add('active'); 
+        btnTmut.classList.remove('active'); 
+        btnDepot.classList.remove('active'); 
+    });
+    btnTmut.addEventListener('click', () => { 
+        currentMap = 'tmut'; 
+        setMapView(currentMap); 
+        updateAllViews(); 
+        btnTmut.classList.add('active'); 
+        btnPatio.classList.remove('active'); 
+        btnDepot.classList.remove('active'); 
+    });
+    btnDepot.addEventListener('click', () => { 
+        currentMap = 'depot'; 
+        setMapView(currentMap); 
+        updateAllViews(); 
+        btnDepot.classList.add('active'); 
+        btnPatio.classList.remove('active'); 
+        btnTmut.classList.remove('active'); 
+    });
     btnResetFilter.addEventListener('click', () => { setDefaultDateToYesterday(); deviceIdInput.value = ''; updateAllViews(); });
     btnResetMap.addEventListener('click', () => setMapView(currentMap));
     ssidFilterRadios.forEach(radio => radio.addEventListener('change', () => updateAllViews()));

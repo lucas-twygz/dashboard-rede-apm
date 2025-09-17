@@ -49,16 +49,27 @@ def process_log_data():
         new_data_df.rename(columns=column_mapping, inplace=True)
 
         # --- 2. Combina as colunas 'data' e 'hora' para criar o 'timestamp' ---
-        # Garante que as colunas de data/hora sejam tratadas como strings
         new_data_df['data'] = new_data_df['data'].astype(str)
         new_data_df['hora'] = new_data_df['hora'].astype(str)
-        # O formato '%m-%d-%Y' corresponde a "08-25-2025"
-        new_data_df['timestamp'] = pd.to_datetime(new_data_df['data'] + ' ' + new_data_df['hora'], format='%m-%d-%Y %H:%M:%S')
+
+        # Usa o formato correto para datas tipo 9/16/2025 8:12:34
+        try:
+            new_data_df['timestamp'] = pd.to_datetime(
+                new_data_df['data'] + ' ' + new_data_df['hora'],
+                format='%m/%d/%Y %H:%M:%S'
+            )
+        except Exception:
+            # fallback mais flexível (aceita variações no CSV)
+            new_data_df['timestamp'] = pd.to_datetime(
+                new_data_df['data'] + ' ' + new_data_df['hora'],
+                format='mixed',
+                errors='coerce'
+            )
 
         # --- 3. Garante que os tipos de dados numéricos estão corretos ---
         numeric_cols = ['signal_dbm', 'packet_loss_percent', 'latency_ms', 'latitude', 'longitude']
         for col in numeric_cols:
-            new_data_df[col] = pd.to_numeric(new_data_df[col])
+            new_data_df[col] = pd.to_numeric(new_data_df[col], errors='coerce')
             
         # Garante que o SSID seja uma string e preenche valores vazios
         new_data_df['current_ssid'].fillna('disconnected', inplace=True)
@@ -89,7 +100,6 @@ def process_log_data():
         conn = sqlite3.connect(DB_PATH)
         
         # --- ATENÇÃO: Descomente este bloco APENAS NA PRIMEIRA EXECUÇÃO ---
-        # Este código adicionará a nova coluna 'latency_ms' à sua tabela.
         # try:
         #     conn.execute("ALTER TABLE raw_points ADD COLUMN latency_ms INTEGER;")
         #     print("Coluna 'latency_ms' adicionada com sucesso à tabela 'raw_points'.")
@@ -97,7 +107,6 @@ def process_log_data():
         #     if "duplicate column name" in str(e):
         #         print("Coluna 'latency_ms' já existe na tabela.")
         #     else:
-        #         # Se for outro erro, exibe-o
         #         raise e
         
         df_to_save.to_sql('raw_points', conn, if_exists='append', index=False)

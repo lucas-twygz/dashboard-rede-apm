@@ -24,7 +24,7 @@ def create_grid_zones(points_df, status):
     for grid_id, group in df.groupby('grid_id'):
         point_count = len(group)
         if status == 'good':
-            radius, opacity = 7, 0.3
+            radius, opacity = 7, 0.6
         else:
             if point_count == 1: radius = 8
             opacity = 0.6

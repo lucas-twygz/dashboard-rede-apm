@@ -1,5 +1,6 @@
 const patioView = { center: [-38.811906, -3.549906], zoom: 16, bearing: 52, pitch: 0 };
 const tmutView = { center: [-38.797690, -3.525506], zoom: 15.5, bearing: 50, pitch: 0 };
+const depotView = { center: [-38.837364, -3.581544], zoom: 17, bearing: 50, pitch: 0 };
 
 let map;
 const toggleGoodLayer = document.getElementById('toggle-good-layer');
@@ -57,7 +58,16 @@ function toggleLayerVisibility(layerId, isVisible) {
 }
 
 export function setMapView(mapName) {
-    const view = mapName === 'patio' ? patioView : tmutView;
+    let view;
+    if (mapName === 'patio') {
+        view = patioView;
+    } else if (mapName === 'tmut') {
+        view = tmutView;
+    } else if (mapName === 'depot') {
+        view = depotView;
+    } else {
+        view = patioView;
+    }
     map.jumpTo({ ...view });
 }
 

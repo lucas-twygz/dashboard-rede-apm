@@ -20,7 +20,8 @@ OPERATIONAL_SSID = "2G_6qmzayp"
 MAPS_CONFIG = {
     'patio': {'lat_top': -3.543, 'lat_bottom': -3.556, 'lon_left': -38.822, 'lon_right': -38.802},
     'tmut': {'lat_top': TMUT_CENTER_LAT + BUFFER_GPS, 'lat_bottom': TMUT_CENTER_LAT - BUFFER_GPS,
-             'lon_left': TMUT_CENTER_LON - BUFFER_GPS, 'lon_right': TMUT_CENTER_LON + BUFFER_GPS}
+             'lon_left': TMUT_CENTER_LON - BUFFER_GPS, 'lon_right': TMUT_CENTER_LON + BUFFER_GPS},
+    'depot': {'lat_top': -3.57654, 'lat_bottom': -3.58654, 'lon_left': -38.84236, 'lon_right': -38.83236}
 }
 
 # --- CORREÇÃO: TEMPLATES MOVIDO PARA O ESCOPO GLOBAL ---
@@ -174,12 +175,15 @@ def export_excel_route():
         lat, lon = row['latitude'], row['longitude']
         patio = MAPS_CONFIG['patio']
         tmut = MAPS_CONFIG['tmut']
+        depot = MAPS_CONFIG['depot'] # Garanta que esta linha existe
         if (patio['lat_bottom'] <= lat <= patio['lat_top']) and (patio['lon_left'] <= lon <= patio['lon_right']):
             return 'Pátio'
         if (tmut['lat_bottom'] <= lat <= tmut['lat_top']) and (tmut['lon_left'] <= lon <= tmut['lon_right']):
             return 'TMUT'
+        if (depot['lat_bottom'] <= lat <= depot['lat_top']) and (depot['lon_left'] <= lon <= depot['lon_right']):
+            return 'Depot'
         return 'Fora da Área'
-        
+    
     df['Área'] = df.apply(assign_area, axis=1)
     df['Data'] = df['timestamp'].dt.strftime('%d/%m/%Y')
     df['Hora'] = df['timestamp'].dt.strftime('%H:%M:%S')
