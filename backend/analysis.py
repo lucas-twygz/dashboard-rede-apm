@@ -70,26 +70,36 @@ def generate_map_data(df):
 
 # --- LÓGICA DO GRÁFICO (CORRIGIDA) ---
 def get_top_problem_locations(df):
-    if df.empty: return []
-    
+    if df.empty:
+        return []
+
     df_copy = df.copy()
     df_copy['status'] = df_copy.apply(classify_point_status, axis=1)
-    problem_points = df_copy[df_copy['status'].isin(['critical', 'attention'])].copy()
-    if problem_points.empty: return []
+
+    # Inclui todos os status: critical, attention e good
+    problem_points = df_copy[df_copy['status'].isin(['critical', 'attention', 'good'])].copy()
+    if problem_points.empty:
+        return []
 
     problem_points['grid_lat'] = (problem_points['latitude'] // GRID_SIZE_GPS).astype(int)
     problem_points['grid_lon'] = (problem_points['longitude'] // GRID_SIZE_GPS).astype(int)
-    
+
+    # Agrupa por grid e status
     counts = problem_points.groupby(['grid_lat', 'grid_lon', 'status']).size().unstack(fill_value=0)
-    if 'critical' not in counts.columns: counts['critical'] = 0
-    if 'attention' not in counts.columns: counts['attention'] = 0
-    counts['total_problems'] = counts['critical'] + counts['attention']
+
+    # Garante que todas as colunas existam
+    for col in ['critical', 'attention', 'good']:
+        if col not in counts.columns:
+            counts[col] = 0
+
+    counts['total_problems'] = counts['critical'] + counts['attention'] + counts['good']
     counts.reset_index(inplace=True)
 
     visited = set()
     clusters = []
     grid_coords = set(zip(counts['grid_lat'], counts['grid_lon']))
 
+    # Agrupamento de grids vizinhos
     for index, grid in counts.iterrows():
         lat, lon = grid['grid_lat'], grid['grid_lon']
         if (lat, lon) in visited:
@@ -102,22 +112,24 @@ def get_top_problem_locations(df):
             current_cluster_coords.add((current_lat, current_lon))
             for i in range(-1, 2):
                 for j in range(-1, 2):
-                    if i == 0 and j == 0: continue
+                    if i == 0 and j == 0:
+                        continue
                     neighbor = (current_lat + i, current_lon + j)
                     if neighbor in grid_coords and neighbor not in visited:
                         visited.add(neighbor)
                         q.append(neighbor)
         clusters.append(current_cluster_coords)
 
+    # Monta os dados finais para o gráfico
     clustered_data = []
     for i, cluster_coords in enumerate(clusters):
         cluster_df = counts[counts.set_index(['grid_lat', 'grid_lon']).index.isin(cluster_coords)]
-        
+        cluster_points = problem_points[problem_points.set_index(['grid_lat', 'grid_lon']).index.isin(cluster_coords)]
+
         critical_count = cluster_df['critical'].sum()
         attention_count = cluster_df['attention'].sum()
-        
-        cluster_points = problem_points[problem_points.set_index(['grid_lat', 'grid_lon']).index.isin(cluster_coords)]
-        
+        good_count = cluster_df['good'].sum()
+
         avg_lat = cluster_points['latitude'].mean()
         avg_lon = cluster_points['longitude'].mean()
 
@@ -125,13 +137,15 @@ def get_top_problem_locations(df):
             'grid_id': f'{i+1}',
             'critical_count': int(critical_count),
             'attention_count': int(attention_count),
-            'total_problems': int(critical_count + attention_count),
+            'good_count': int(good_count),
+            'total_problems': int(critical_count + attention_count + good_count),
             'lat': avg_lat,
             'lon': avg_lon
         })
 
+    # Ordena do pior para o melhor, mas mantém sempre até 10 clusters
     final_top_10 = sorted(clustered_data, key=lambda x: x['total_problems'], reverse=True)[:10]
-    
+
     return final_top_10
 
 # --- FUNÇÃO DE KPIs ---

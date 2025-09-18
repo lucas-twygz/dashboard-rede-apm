@@ -85,10 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
     initMap();
 
     const filterStyles = {
-        'main_network': { title: 'Áreas Críticas - Rede Principal', className: 'title-main-network' },
-        'disconnected': { title: 'Áreas Críticas - Desconectados', className: 'title-disconnected' },
-        'other_networks': { title: 'Áreas Críticas - Outras Redes', className: 'title-other-networks' },
-        'all': { title: 'Áreas Críticas - Todas as Medições', className: 'title-all' }
+        'main_network': { title: 'Áreas de Medição - Rede Principal', className: 'title-main-network' },
+        'disconnected': { title: 'Áreas de Medição - Desconectados', className: 'title-disconnected' },
+        'other_networks': { title: 'Áreas de Medição - Outras Redes', className: 'title-other-networks' },
+        'all': { title: 'Áreas de Medição - Todas as Medições', className: 'title-all' }
     };
 
     function setDefaultDateToYesterday() {

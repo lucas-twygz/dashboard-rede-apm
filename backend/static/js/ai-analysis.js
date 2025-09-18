@@ -224,10 +224,9 @@ export async function performFullAnalysis({
     } catch (error) {
         console.error('Erro na análise completa:', error);
         
-        // Retornar mensagem de erro formatada
         return `
             <div class="error-container" style="color: #d32f2f; padding: 15px; background-color: #ffebee; border-radius: 5px; border-left: 4px solid #d32f2f; margin: 10px 0;">
-                <h3 style="margin-top: 0; color: #d32f2f;">⚠️ Erro na Análise</h3>
+                <h3 style="margin-top: 0; color: #d32f2f;">Erro na Análise</h3>
                 <p><strong>Detalhes:</strong> ${error.message}</p>
                 <p><strong>Sugestões:</strong></p>
                 <ul>

@@ -337,14 +337,31 @@ Nenhuma medição disponível para o período de {periodo} em {dispositivo}.
         tablet_ids = [p['id'] for p in problem_points if 'id' in p]
         if tablet_ids:
             tablet_counts = Counter(tablet_ids)
-            worst_tablet_id, worst_tablet_count = tablet_counts.most_common(1)[0]
-            if worst_tablet_count > len(problem_points) * 0.4:
-                worst_tablet_analysis = (
-                    f"O tablet <span class='copy-id' title='Clique para copiar'>{worst_tablet_id}</span> foi "
-                    f"responsável por **{worst_tablet_count}** de {len(problem_points)} incidentes."
-                )
-            else:
-                worst_tablet_analysis = "As instabilidades estão distribuídas entre vários dispositivos."
+            most_common_list = tablet_counts.most_common()
+            
+            if most_common_list:
+                worst_tablet_count = most_common_list[0][1]
+                if worst_tablet_count > 1 or (len(tablet_ids) > 0 and worst_tablet_count / len(tablet_ids) > 0.4):
+                    
+                    worst_tablets = [
+                        f"<span class='copy-id' title='Clique para copiar'>{tablet}</span>" 
+                        for tablet, count in most_common_list 
+                        if count == worst_tablet_count
+                    ]
+
+                    if len(worst_tablets) == 1:
+                        worst_tablet_analysis = (
+                            f"O tablet {worst_tablets[0]} foi responsável por "
+                            f"**{worst_tablet_count}** de {len(tablet_ids)} incidentes."
+                        )
+                    else:
+                        tablets_str = ", ".join(worst_tablets)
+                        worst_tablet_analysis = (
+                            f"Os tablets {tablets_str} foram os principais responsáveis, cada um com "
+                            f"**{worst_tablet_count}** incidentes."
+                        )
+                else:
+                    worst_tablet_analysis = "As instabilidades estão distribuídas entre vários dispositivos."
 
         ssids = [p.get('ssid', 'desconhecido') for p in problem_points]
         ssid_counts = Counter(ssids)
@@ -369,8 +386,6 @@ Nenhuma medição disponível para o período de {periodo} em {dispositivo}.
             periodo_pico = max(periodos, key=periodos.get)
             if periodos[periodo_pico] > len(hours) * 0.5:
                 time_analysis = f"Há concentração de eventos no período da **{periodo_pico.split(' ')[0]}**."
-    
-    # O DICIONÁRIO TEMPLATES FOI MOVIDO DAQUI PARA CIMA (ESCOPO GLOBAL)
 
     planos_de_acao = []
     if problem_points:

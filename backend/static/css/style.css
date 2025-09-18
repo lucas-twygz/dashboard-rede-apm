@@ -30,10 +30,8 @@ body {
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-h1 {
-    text-align: center;
-    color: var(--color-text);
-    transition: color 0.3s ease;
+h1, h2 {
+    font-size: clamp(1.2rem, 2.5vw, 2rem); /* Escala automaticamente */
 }
 
 /* --- ESTILOS PARA OS CONTROLES SUPERIORES --- */
@@ -260,65 +258,13 @@ h2 {
 }
 
 /* ESTILO PARA O MARCADOR PULSANTE */
-@keyframes pulse {
-    0% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7);
-    }
-    70% {
-        transform: scale(1);
-        box-shadow: 0 0 0 10px rgba(255, 82, 82, 0);
-    }
-    100% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(255, 82, 82, 0);
-    }
-}
-
-.pulsing-icon {
-    background-color: rgba(255, 82, 82, 1);
-    border-radius: 50%;
-    box-shadow: 0 0 0 rgba(255, 82, 82, 0.4);
-    animation: pulse 2s infinite;
-}
+@keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 82, 82, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 82, 82, 0); } } .pulsing-icon { background-color: rgba(255, 82, 82, 1); border-radius: 50%; box-shadow: 0 0 0 rgba(255, 82, 82, 0.4); animation: pulse 2s infinite; }
 
 .leaflet-control-attribution {
     display: none;
 }
 
-/* --- ESTILOS PARA OS FILTROS DE SSID --- */
-/* --- ESTILOS PARA OS FILTROS DE SSID (CORRIGIDO) --- */
-.ssid-filters {
-    display: flex;
-    gap: 10px;
-    background-color: #2c2c2c;
-    padding: 5px;
-    border-radius: 8px;
-}
-
-.ssid-filters label {
-    padding: 8px 15px;
-    font-size: 0.9em;
-    font-weight: bold;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: all 0.2s ease-in-out;
-    color: var(--color-text-light);
-}
-
-.ssid-filters input[type="radio"] {
-    display: none;
-}
-
-.ssid-filters label:hover {
-    background-color: #3f3f3f;
-    color: var(--color-text);
-}
-
-.ssid-filters input[type="radio"]:checked + label {
-    background-color: var(--color-accent);
-    color: white;
-}
+.ssid-filters { display: flex; gap: 10px; background-color: #2c2c2c; padding: 5px; border-radius: 8px; } .ssid-filters label { padding: 8px 15px; font-size: 0.9em; font-weight: bold; cursor: pointer; border-radius: 6px; transition: all 0.2s ease-in-out; color: var(--color-text-light); } .ssid-filters input[type="radio"] { display: none; } .ssid-filters label:hover { background-color: #3f3f3f; color: var(--color-text); } .ssid-filters input[type="radio"]:checked + label { background-color: var(--color-accent); color: white; }
 
 h2 {
     text-align: center;
@@ -425,10 +371,7 @@ h2.title-all {
 }
 
 .kpi-value {
-    display: block;
-    font-size: 2em;
-    font-weight: 700;
-    color: var(--color-text);
+    font-size: clamp(1.5rem, 4vw, 2rem);
 }
 
 #kpi-critical-percentage,
@@ -542,16 +485,10 @@ h2.title-all {
 
 /* --- Estilos para os Controles de Camada --- */
 .layer-controls {
-    position: absolute;
-    bottom: 20px; /* Ajuste conforme a sua preferência */
-    right: 20px;  /* Ajuste conforme a sua preferência */
-    background-color: rgba(30, 30, 30, 0.9);
-    padding: 10px 15px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    z-index: 1000; /* Garante que fique acima do mapa */
-    font-family: 'Lato', sans-serif;
-    color: #f0f0f0;
+    bottom: 10px;
+    right: 10px;
+    padding: 8px 10px;
+    font-size: 0.85em;
 }
 
 .layer-item {
@@ -713,4 +650,61 @@ a.focus-location {
     color: var(--color-accent);
     font-weight: bold;
     transition: color 0.3s ease
+}
+
+@media (max-width: 992px) {
+    .below-map-controls {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    #map-container,
+    #chart-container {
+        height: 350px;
+    }
+}
+
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        padding: 15px;
+    }
+
+    .controls {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .date-filters {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    #map-container,
+    #chart-container {
+        height: 280px;
+    }
+
+    .map-buttons button,
+    #btn-reset-map,
+    #btn-reset-filter,
+    #btn-export-excel {
+        width: 100%;
+    }
+
+    .layer-controls {
+        position: static; /* Fica embaixo do mapa no celular */
+        margin-top: 10px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .layer-item {
+        margin: 5px;
+    }
 }

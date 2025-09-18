@@ -3,7 +3,6 @@ let problemChart = null;
 export function drawProblemChart(apiData, onBarClickCallback) {
     const ctx = document.getElementById('critical-points-chart').getContext('2d');
 
-    // Garante que a instância anterior do gráfico seja destruída para evitar bugs visuais
     if (problemChart) {
         problemChart.destroy();
     }
@@ -11,6 +10,7 @@ export function drawProblemChart(apiData, onBarClickCallback) {
     const labels = apiData.map(item => item.grid_id);
     const criticalData = apiData.map(item => item.critical_count);
     const attentionData = apiData.map(item => item.attention_count);
+    const goodData = apiData.map(item => item.good_count);
 
     problemChart = new Chart(ctx, {
         type: 'bar',
@@ -24,6 +24,10 @@ export function drawProblemChart(apiData, onBarClickCallback) {
                 label: 'Atenção',
                 data: attentionData,
                 backgroundColor: '#FFC107',
+            }, {
+                label: 'Bom',
+                data: goodData,
+                backgroundColor: '#4CAF50',
             }]
         },
         options: {
@@ -33,7 +37,6 @@ export function drawProblemChart(apiData, onBarClickCallback) {
                 if (elements.length > 0) {
                     const clickedIndex = elements[0].index;
                     const pointData = apiData[clickedIndex];
-                    // Verifica se o callback existe e se os dados são válidos antes de chamar
                     if (pointData && typeof pointData.lat !== 'undefined' && typeof pointData.lon !== 'undefined' && onBarClickCallback) {
                         onBarClickCallback(pointData.lat, pointData.lon);
                     }
@@ -45,27 +48,22 @@ export function drawProblemChart(apiData, onBarClickCallback) {
                     position: 'top',
                     labels: {
                         color: '#f0f0f0',
-                        font: {
-                            family: 'Lato'
-                        }
+                        font: { family: 'Lato' }
                     }
                 },
                 tooltip: {
                     callbacks: {
-                        title: (context) => `Local (Cluster ID): ${context[0].label}`,
+                        title: (context) => `Área: ${context[0].label}`,
                         label: (context) => {
-                             const item = apiData[context.dataIndex];
-                             if (context.dataset.label === 'Críticos') {
-                                 return ` Críticos: ${item.critical_count}`;
-                             }
-                             if (context.dataset.label === 'Atenção') {
-                                 return ` Atenção: ${item.attention_count}`;
-                             }
-                             return '';
+                            const item = apiData[context.dataIndex];
+                            if (context.dataset.label === 'Críticos') return ` Críticos: ${item.critical_count}`;
+                            if (context.dataset.label === 'Atenção') return ` Atenção: ${item.attention_count}`;
+                            if (context.dataset.label === 'Bom') return ` Bom: ${item.good_count}`;
+                            return '';
                         },
                         footer: (context) => {
                             const item = apiData[context[0].dataIndex];
-                            return `Total de Problemas: ${item.total_problems}`;
+                            return `Total de Medições: ${item.total_problems}`;
                         }
                     }
                 }
@@ -75,19 +73,11 @@ export function drawProblemChart(apiData, onBarClickCallback) {
                     stacked: true,
                     title: {
                         display: true,
-                        text: 'Ranking dos Piores Locais',
+                        text: 'Áreas', 
                         color: '#f0f0f0',
-                        font: {
-                            family: 'Lato',
-                            size: 14
-                        }
+                        font: { family: 'Lato', size: 14 }
                     },
-                    ticks: {
-                        color: '#f0f0f0',
-                        font: {
-                            family: 'Lato'
-                        }
-                    }
+                    ticks: { color: '#f0f0f0', font: { family: 'Lato' } }
                 },
                 y: {
                     stacked: true,
@@ -96,17 +86,9 @@ export function drawProblemChart(apiData, onBarClickCallback) {
                         display: true,
                         text: 'Quantidade de Medições',
                         color: '#f0f0f0',
-                        font: {
-                            family: 'Lato',
-                            size: 14
-                        }
+                        font: { family: 'Lato', size: 14 }
                     },
-                    ticks: {
-                        color: '#f0f0f0',
-                        font: {
-                            family: 'Lato'
-                        }
-                    }
+                    ticks: { color: '#f0f0f0', font: { family: 'Lato' } }
                 }
             }
         }

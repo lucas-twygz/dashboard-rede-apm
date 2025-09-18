@@ -1,5 +1,5 @@
 const patioView = { center: [-38.811906, -3.549906], zoom: 16, bearing: 52, pitch: 0 };
-const tmutView = { center: [-38.797690, -3.525506], zoom: 15.5, bearing: 50, pitch: 0 };
+const tmutView = { center: [-38.79731275, -3.52546299], zoom: 15.7, bearing: 50, pitch: 0 };
 const depotView = { center: [-38.837364, -3.581544], zoom: 17, bearing: 50, pitch: 0 };
 
 let map;
