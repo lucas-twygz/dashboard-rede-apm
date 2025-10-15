@@ -218,12 +218,14 @@
                 <button id="btn-reset-map" title="Resetar zoom e posição">Resetar Mapa</button>
             </div>
             <div class="ssid-filters">
-                <input type="radio" name="ssid_filter" value="all" id="ssid_all" checked>
+
+                
+                <input type="radio" name="ssid_filter" value="main_network" id="ssid_main" checked>
+                <label for="ssid_main">Rede Principal</label>
+
+                <input type="radio" name="ssid_filter" value="all" id="ssid_all">
                 <label for="ssid_all">Todas as Medições</label>
 
-                <input type="radio" name="ssid_filter" value="main_network" id="ssid_main">
-                <label for="ssid_main">Rede Principal</label>
-                
                 <input type="radio" name="ssid_filter" value="disconnected" id="ssid_disconnected">
                 <label for="ssid_disconnected">Desconectados</label>
                 

@@ -3,7 +3,8 @@ import pandas as pd
 import math
 
 # --- CONSTANTES GLOBAIS ---
-GRID_SIZE_GPS = 0.00025 
+# O GRID_SIZE_GPS não será mais usado para agrupar, mas o mantemos caso seja útil para outras funções.
+GRID_SIZE_GPS = 0.00025
 
 # --- FUNÇÕES DE ANÁLISE ---
 def classify_point_status(row):
@@ -14,58 +15,63 @@ def classify_point_status(row):
         return 'attention'
     return 'good'
 
-def create_grid_zones(points_df, status):
-    if points_df.empty: return []
-    df = points_df.copy()
-    df['grid_lat'] = (df['lat'] // GRID_SIZE_GPS)
-    df['grid_lon'] = (df['lng'] // GRID_SIZE_GPS)
-    df['grid_id'] = df['grid_lat'].astype(str) + '_' + df['grid_lon'].astype(str)
+def create_individual_points(points_df, status):
+    """
+    NOVA FUNÇÃO: Transforma cada ponto de dados em um 'Feature' GeoJSON individual para plotagem.
+    Cada ponto será uma zona, sem agrupamento.
+    """
+    if points_df.empty:
+        return []
+
     zones = []
-    for grid_id, group in df.groupby('grid_id'):
-        point_count = len(group)
-        if status == 'good':
-            radius, opacity = 7, 0.6
-        else:
-            if point_count == 1: radius = 8
-            opacity = 0.6
-            if status == 'attention':
-                base_opacity = 0.8
-                opacity = np.interp(point_count, [1, 10], [base_opacity, 0.9]) if point_count > 1 else base_opacity
-            elif status == 'critical':
-                base_opacity = 1
-                opacity = np.interp(point_count, [1, 10], [base_opacity, 1.0]) if point_count > 1 else base_opacity
-        point_details = []
-        for index, row in group.iterrows():
-            timestamp = pd.to_datetime(row['timestamp'])
-            formatted_time = timestamp.strftime('%d/%m/%Y %H:%M:%S')
-            # --- ALTERAÇÃO AQUI ---
-            # Adicionamos lat e lon para cada ponto individual.
-            point_details.append({
-                'id': row['tablet_android_id'],
-                'time': formatted_time,
-                'ssid': row['current_ssid'],
-                'lat': row['lat'],
-                'lon': row['lng']
-            })
-        centroid = [group['lng'].mean(), group['lat'].mean()]
+    for index, row in points_df.iterrows():
+        # Define um raio e opacidade fixos para melhor visualização de pontos individuais
+        radius, opacity = 5, 0.9
+
+        timestamp = pd.to_datetime(row['timestamp'])
+        formatted_time = timestamp.strftime('%d/%m/%Y %H:%M:%S')
+
+        point_details = [{
+            'id': row['tablet_android_id'],
+            'time': formatted_time,
+            'ssid': row['current_ssid'],
+            'lat': row['lat'],
+            'lon': row['lng']
+        }]
+
+        # As coordenadas da geometria agora são do próprio ponto
+        centroid = [row['lng'], row['lat']]
+
         feature = {
             "type": "Feature",
-            "properties": { "status": status, "point_count": point_count, "opacity": round(opacity, 2), "point_details": point_details },
-            "geometry": { "type": "Point", "coordinates": centroid }
+            "properties": {
+                "status": status,
+                "point_count": 1, # Cada "zona" agora tem apenas 1 ponto
+                "opacity": opacity,
+                "radius": radius,
+                "point_details": point_details
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": centroid
+            }
         }
         zones.append(feature)
     return zones
 
 def generate_map_data(df):
-    if df.empty: return {'critical_zones': [], 'attention_zones': [], 'good_zones': []}
+    if df.empty:
+        return {'critical_zones': [], 'attention_zones': [], 'good_zones': []}
     df_copy = df.copy()
     df_copy['status'] = df_copy.apply(classify_point_status, axis=1)
     df_copy.rename(columns={'latitude': 'lat', 'longitude': 'lng'}, inplace=True)
+
     critical_df, attention_df, good_df = [df_copy[df_copy['status'] == s] for s in ['critical', 'attention', 'good']]
+
     return {
-        'critical_zones': create_grid_zones(critical_df, 'critical'),
-        'attention_zones': create_grid_zones(attention_df, 'attention'),
-        'good_zones': create_grid_zones(good_df, 'good')
+        'critical_zones': create_individual_points(critical_df, 'critical'),
+        'attention_zones': create_individual_points(attention_df, 'attention'),
+        'good_zones': create_individual_points(good_df, 'good')
     }
 
 # --- LÓGICA DO GRÁFICO (CORRIGIDA) ---

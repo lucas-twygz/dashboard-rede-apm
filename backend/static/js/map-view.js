@@ -127,12 +127,11 @@ export function drawMapData(data) {
 
             map.on('click', layerId, (e) => {
                 const properties = e.features[0].properties;
-                const details = JSON.parse(properties.point_details);
-                let popupContent = `<div class="popup-content"><b>${properties.status === 'good' ? 'Zona de Rede Boa' : (properties.status === 'attention' ? 'Zona de Rede Média' : 'Zona de Rede Ruim')}</b><br>Medições Agrupadas: ${properties.point_count}<hr style="margin: 5px 0;">`;
-                if (details) {
-                    details.forEach(detail => {
-                        popupContent += `<div><span class="copy-id" title="Clique para copiar">${detail.id}</span>, ${detail.time}, <b>${detail.ssid}</b></div>`;
-                    });
+                // Acessa diretamente o primeiro (e único) item dos detalhes
+                const detail = JSON.parse(properties.point_details)[0];
+                let popupContent = `<div class="popup-content"><b>${properties.status === 'good' ? 'Ponto de Rede Boa' : (properties.status === 'attention' ? 'Ponto de Rede Média' : 'Ponto de Rede Ruim')}</b><br><hr style="margin: 5px 0;">`;
+                if (detail) {
+                    popupContent += `<div><span class="copy-id" title="Clique para copiar">${detail.id}</span>, ${detail.time}, <b>${detail.ssid}</b></div>`;
                 }
                 popupContent += `</div>`;
                 new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupContent).addTo(map);
