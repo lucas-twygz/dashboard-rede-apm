@@ -157,22 +157,66 @@ def get_top_problem_locations(df):
 # --- FUNÇÃO DE KPIs ---
 def calculate_kpis(df):
     if df.empty:
-        return { 'total_measurements': 0, 'critical_percentage': 0, 'disconnections': 0, 'worst_tablet': 'N/A' }
+        return { 
+            'total_measurements': 0, 
+            'critical_percentage': 0, 
+            'disconnections': 0, 
+            'worst_tablet': 'N/A',
+            'unique_devices': 0,
+            'avg_signal': 0,            # Adicionado
+            'avg_latency': 'N/A',       # Adicionado
+            'peak_problem_hour': 'N/A'  # Adicionado
+        }
+    
     df_copy = df.copy()
     df_copy['status'] = df_copy.apply(classify_point_status, axis=1)
+    
+    # --- Cálculos existentes ---
     total_measurements = len(df_copy)
     critical_count = df_copy[df_copy['status'] == 'critical'].shape[0]
     critical_percentage = (critical_count / total_measurements) * 100 if total_measurements > 0 else 0
     disconnections = df_copy[df_copy['current_ssid'] == 'disconnected'].shape[0]
+    unique_devices = df_copy['tablet_android_id'].nunique()
+
     worst_tablet = 'N/A'
     problem_points = df_copy[df_copy['status'].isin(['critical', 'attention'])]
     if not problem_points.empty:
         tablet_counts = problem_points['tablet_android_id'].value_counts()
         if not tablet_counts.empty:
             worst_tablet = tablet_counts.index[0]
+            
+    # --- NOVOS CÁLCULOS DE KPI ---
+    
+    # 1. Sinal Médio (dBm)
+    avg_signal = df_copy['signal_dbm'].mean()
+    
+    # 2. Latência Média (ms) - Verifica se a coluna existe
+    avg_latency_kpi = 'N/A'
+    if 'latency_ms' in df_copy.columns and pd.api.types.is_numeric_dtype(df_copy['latency_ms']):
+        # Calcula a média apenas de valores válidos (maiores que 0)
+        valid_latency = df_copy[df_copy['latency_ms'] > 0]['latency_ms']
+        if not valid_latency.empty:
+            avg_latency = valid_latency.mean()
+            avg_latency_kpi = round(avg_latency, 0)
+
+    # 3. Horas com Maior Incidência de Problemas
+    peak_problem_hour_kpi = 'N/A'
+    if not problem_points.empty:
+        # Extrai a hora da coluna timestamp (que já deve ser datetime)
+        hours = problem_points['timestamp'].dt.hour
+        if not hours.empty:
+            peak_hour = hours.value_counts().idxmax()
+            # Formata como "14:00 - 15:00"
+            peak_problem_hour_kpi = f"{int(peak_hour):02d}:00 - {int(peak_hour) + 1:02d}:00"
+
+    # --- Retorno atualizado ---
     return {
         'total_measurements': total_measurements,
         'critical_percentage': round(critical_percentage, 1),
         'disconnections': disconnections,
-        'worst_tablet': worst_tablet
+        'worst_tablet': worst_tablet,
+        'unique_devices': unique_devices,
+        'avg_signal': round(avg_signal, 1) if not pd.isna(avg_signal) else 0, # Adicionado
+        'avg_latency': avg_latency_kpi,                                     # Adicionado
+        'peak_problem_hour': peak_problem_hour_kpi                          # Adicionado
     }

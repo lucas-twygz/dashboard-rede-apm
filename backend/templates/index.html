@@ -134,6 +134,71 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* --- NOVOS ESTILOS PARA O FILTRO DE TEMPO --- */
+        .time-filter-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background-color: var(--color-card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            box-shadow: 0 2px 4px var(--color-shadow);
+        }
+        
+        .time-filter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .time-filter-header label {
+            font-weight: bold;
+            color: var(--color-text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        #time-filter-slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .time-slider-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .time-slider-group span {
+            color: var(--color-text-light);
+            font-size: 0.9em;
+            width: 80px; /* Largura fixa para os labels 'De:' e 'Até:' */
+        }
+        
+        .time-slider-group span .time-display {
+            color: var(--color-text);
+            font-weight: bold;
+            display: inline-block;
+            width: 45px; /* Largura para '00:00' */
+        }
+
+        .time-slider-group input[type="range"] {
+            flex-grow: 1;
+            margin: 0;
+        }
+
+        /* Esconde os sliders se o "Dia Todo" estiver checado */
+        #time-filter-all-day:checked ~ #time-filter-slider-container {
+            display: none;
+        }
+        /* --- FIM DOS NOVOS ESTILOS --- */
     </style>
 </head>
 <body>
@@ -150,6 +215,18 @@
                 <span id="kpi-total-measurements" class="kpi-value">-</span>
             </div>
             <div class="kpi-card">
+                <span class="kpi-title">Dispositivos Únicos</span>
+                <span id="kpi-unique-devices" class="kpi-value">-</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-title">Sinal Médio (dBm)</span>
+                <span id="kpi-avg-signal" class="kpi-value">-</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-title">Latência Média (ms)</span>
+                <span id="kpi-avg-latency" class="kpi-value">-</span>
+            </div>
+            <div class="kpi-card">
                 <span class="kpi-title">% de Medições Críticas</span>
                 <span id="kpi-critical-percentage" class="kpi-value">-</span>
             </div>
@@ -160,6 +237,10 @@
             <div id="kpi-card-worst-tablet" class="kpi-card">
                 <span class="kpi-title">Tablet com Pior Sinal</span>
                 <span id="kpi-worst-tablet" class="kpi-value copy-id" title="Clique para copiar o ID">-</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-title">Pico de Problemas</span>
+                <span id="kpi-peak-problem-hour" class="kpi-value">-</span>
             </div>
         </div>
         
@@ -189,6 +270,24 @@
             </div>
         </div>
 
+        <div class="time-filter-container">
+            <div class="time-filter-header">
+                <label for="time-filter-all-day">
+                    <input type="checkbox" id="time-filter-all-day" checked>
+                    Filtrar por Hora (Dia Todo)
+                </label>
+            </div>
+            <div id="time-filter-slider-container">
+                <div class="time-slider-group">
+                    <span>De: <span id="time-start-display" class="time-display">00:00</span></span>
+                    <input type="range" id="time-start-slider" min="0" max="23" value="0">
+                </div>
+                <div class="time-slider-group">
+                    <span>Até: <span id="time-end-display" class="time-display">23:59</span></span>
+                    <input type="range" id="time-end-slider" min="0" max="23" value="23">
+                </div>
+            </div>
+        </div>
         <div class="map-wrapper">
             <div id="map-container"></div>
             <div class="layer-controls">
@@ -234,7 +333,6 @@
             </div>
         </div>
 
-        <!-- NOVA SEÇÃO: Análise de IA -->
         <div class="ai-analysis-section">
             <div class="ai-analysis-header">
                 <h2>Análise com I.A</h2>
@@ -257,6 +355,8 @@
 
     <script src="{{ url_for('static', filename='js/maplibre-gl.js') }}"></script>
     <script src="{{ url_for('static', filename='js/chart.js') }}"></script>
+    
+    <script type="module" src="{{ url_for('static', filename='js/api.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

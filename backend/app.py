@@ -21,10 +21,11 @@ MAPS_CONFIG = {
     'patio': {'lat_top': -3.543, 'lat_bottom': -3.556, 'lon_left': -38.822, 'lon_right': -38.802},
     'tmut': {'lat_top': TMUT_CENTER_LAT + BUFFER_GPS, 'lat_bottom': TMUT_CENTER_LAT - BUFFER_GPS,
              'lon_left': TMUT_CENTER_LON - BUFFER_GPS, 'lon_right': TMUT_CENTER_LON + BUFFER_GPS},
-    'depot': {'lat_top': -3.57654, 'lat_bottom': -3.58654, 'lon_left': -38.84236, 'lon_right': -38.83236}
+    'depot': {'lat_top': -3.57654, 'lat_bottom': -3.58654, 'lon_left': -38.84236, 'lon_right': -38.83236},
+    'ignore_box': { 'lat_min': -3.580911, 'lat_max': -3.579374, 'lon_min': -38.837103, 'lon_max': -38.835838}
 }
 
-# --- CORREÇÃO: TEMPLATES MOVIDO PARA O ESCOPO GLOBAL ---
+# --- TEMPLATES (Seu JSON de templates) ---
 TEMPLATES = {
     'David': {
         'low_signal': [
@@ -91,19 +92,35 @@ TEMPLATES = {
 }
 
 
-# --- FUNÇÃO HELPER ---
-def get_filtered_data(map_name=None, start_date=None, end_date=None, ssid_filter=None, tablet_id=None):
+# --- FUNÇÃO HELPER (MODIFICADA) ---
+def get_filtered_data(map_name=None, start_date=None, end_date=None, ssid_filter=None, tablet_id=None, start_hour=None, end_hour=None):
     df = database.get_all_raw_points()
     if df.empty:
         return df
+        
     df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
     df.dropna(subset=['timestamp'], inplace=True)
+    
     if tablet_id:
         df = df[df['tablet_android_id'] == tablet_id]
+        
     if start_date and end_date:
         start = pd.to_datetime(start_date)
         end = pd.to_datetime(end_date).replace(hour=23, minute=59, second=59)
         df = df[(df['timestamp'] >= start) & (df['timestamp'] <= end)]
+        
+    # --- NOVO FILTRO DE HORA ADICIONADO ---
+    if start_hour is not None and end_hour is not None:
+        try:
+            start_h = int(start_hour)
+            # Fim da hora (ex: 23 significa até 23:59:59)
+            end_h = int(end_hour) 
+            
+            # Filtra baseado no componente 'hour' do timestamp
+            df = df[(df['timestamp'].dt.hour >= start_h) & (df['timestamp'].dt.hour <= end_h)]
+        except ValueError:
+            pass # Ignora se os valores de hora forem inválidos
+            
     if ssid_filter:
         if ssid_filter == 'main_network':
             df = df[df['current_ssid'] == OPERATIONAL_SSID]
@@ -111,10 +128,12 @@ def get_filtered_data(map_name=None, start_date=None, end_date=None, ssid_filter
             df = df[df['current_ssid'] == 'disconnected']
         elif ssid_filter == 'other_networks':
             df = df[~df['current_ssid'].isin([OPERATIONAL_SSID, 'disconnected'])]
+            
     if map_name and map_name in MAPS_CONFIG:
         bounds = MAPS_CONFIG[map_name]
         df = df[(df['latitude'].between(bounds['lat_bottom'], bounds['lat_top'])) &
                 (df['longitude'].between(bounds['lon_left'], bounds['lon_right']))]
+                
     return df.copy()
 
 # --- ROTA PRINCIPAL ---
@@ -122,7 +141,7 @@ def get_filtered_data(map_name=None, start_date=None, end_date=None, ssid_filter
 def index():
     return render_template('index.html')
 
-# --- ROTAS DA API ---
+# --- ROTAS DA API (MODIFICADAS) ---
 @app.route('/api/map_data', methods=['GET'])
 def map_data_route():
     map_name = request.args.get('map', 'patio')
@@ -130,7 +149,11 @@ def map_data_route():
     end_date = request.args.get('end_date', None)
     ssid_filter = request.args.get('ssid_filter', 'main_network')
     tablet_id = request.args.get('tablet_id', None)
-    df_filtered = get_filtered_data(map_name, start_date, end_date, ssid_filter, tablet_id)
+    # Novos parâmetros
+    start_hour = request.args.get('start_hour', None)
+    end_hour = request.args.get('end_hour', None)
+    
+    df_filtered = get_filtered_data(map_name, start_date, end_date, ssid_filter, tablet_id, start_hour, end_hour)
     zones_data = analysis.generate_map_data(df_filtered)
     return jsonify(zones_data)
 
@@ -141,7 +164,11 @@ def critical_points_route():
     end_date = request.args.get('end_date', None)
     ssid_filter = request.args.get('ssid_filter', 'main_network')
     tablet_id = request.args.get('tablet_id', None)
-    df_filtered = get_filtered_data(map_name, start_date, end_date, ssid_filter, tablet_id)
+    # Novos parâmetros
+    start_hour = request.args.get('start_hour', None)
+    end_hour = request.args.get('end_hour', None)
+
+    df_filtered = get_filtered_data(map_name, start_date, end_date, ssid_filter, tablet_id, start_hour, end_hour)
     chart_data = analysis.get_top_problem_locations(df_filtered)
     return jsonify(chart_data)
 
@@ -152,22 +179,34 @@ def kpis_route():
     end_date = request.args.get('end_date', None)
     ssid_filter = request.args.get('ssid_filter', 'main_network')
     tablet_id = request.args.get('tablet_id', None)
-    df_filtered = get_filtered_data(map_name, start_date, end_date, ssid_filter, tablet_id)
+    # Novos parâmetros
+    start_hour = request.args.get('start_hour', None)
+    end_hour = request.args.get('end_hour', None)
+    
+    df_filtered = get_filtered_data(map_name, start_date, end_date, ssid_filter, tablet_id, start_hour, end_hour)
     kpi_data = analysis.calculate_kpis(df_filtered)
     return jsonify(kpi_data)
 
-# --- ENDPOINT DE EXPORTAÇÃO ---
+# --- ENDPOINT DE EXPORTAÇÃO (MODIFICADO) ---
 @app.route('/api/export', methods=['GET'])
 def export_excel_route():
     start_date = request.args.get('start_date', None)
     end_date = request.args.get('end_date', None)
     ssid_filter = request.args.get('ssid_filter', None)
     tablet_id = request.args.get('tablet_id', None)
+    # Novos parâmetros
+    start_hour = request.args.get('start_hour', None)
+    end_hour = request.args.get('end_hour', None)
 
     if not start_date or not end_date:
         return "Erro: As datas de início e fim são obrigatórias.", 400
 
-    df = get_filtered_data(start_date=start_date, end_date=end_date, ssid_filter=ssid_filter, tablet_id=tablet_id)
+    df = get_filtered_data(
+        start_date=start_date, end_date=end_date, 
+        ssid_filter=ssid_filter, tablet_id=tablet_id,
+        start_hour=start_hour, end_hour=end_hour
+    )
+    
     if df.empty:
         return "Nenhum dado encontrado para os filtros selecionados.", 404
 
@@ -202,7 +241,9 @@ def export_excel_route():
         'Tablet (Android ID)', 'Data', 'Hora', 'Área', 'Sinal de Rede (dBm)',
         'Rede Wi-Fi Conectada', 'Perda de Pacotes (%)', 'Latitude', 'Longitude'
     ]
-    df_final = df_renamed[final_column_order]
+    # Filtra colunas que existem no df_renamed
+    final_column_order_existing = [col for col in final_column_order if col in df_renamed.columns]
+    df_final = df_renamed[final_column_order_existing]
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
